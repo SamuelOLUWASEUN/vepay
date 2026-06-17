@@ -166,7 +166,7 @@ export function SignInPage() {
             'inline-flex h-14 w-14 rounded-2xl items-center justify-center font-display font-black text-xl mb-4',
             isDark ? 'bg-[#7c5cff] text-white' : 'bg-[#2b1810] text-[#fbf3e7]',
           ].join(' ')}>
-            TK
+            VP
           </div>
           <h1 className={['font-display text-2xl font-extrabold', ink].join(' ')}>
             Vepay
@@ -367,3 +367,4 @@ export function SignInPage() {
     </div>
   );
 }
+
