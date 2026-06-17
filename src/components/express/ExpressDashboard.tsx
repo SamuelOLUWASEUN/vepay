@@ -3,7 +3,6 @@ import { WeeklyPlanCard } from '../shared/WeeklyPlanCard';
 import { SpendForecast } from '../shared/SpendForecast';
 import { TrafficLightRing } from './TrafficLightRing';
 import { ActionGrid } from './ActionGrid';
-import { LedgerSummary } from './LedgerSummary';
 import { OfflineSyncBadge } from './OfflineSyncBadge';
 import { VoiceWaveform } from './VoiceWaveform';
 import { ExpressExpenseList } from './ExpressExpenseList';
@@ -12,9 +11,9 @@ import { AjoGroupHub } from './AjoGroupHub';
 
 export function ExpressDashboard() {
   return (
-    <div className="min-h-screen bg-express-bg pb-24">
+    <div className="min-h-screen bg-express-bg pb-24 overflow-x-hidden">
       <div className="mx-auto max-w-xl px-4 pt-16 sm:pt-6">
-        <header className="flex items-center justify-between mb-4 pl-12 sm:pl-0">
+        <header className="flex items-center justify-between mb-4 pl-14 sm:pl-0">
           <div>
             <p className="font-display text-2xl font-extrabold text-express-ink">Vepay</p>
             <p className="text-xs text-express-muted">Express Mode · Daily money, made simple</p>
@@ -41,17 +40,13 @@ export function ExpressDashboard() {
           {/* 4. This Week's Plan — calendar + envelopes merged */}
           <WeeklyPlanCard mode="EXPRESS" />
 
-          {/* 5. Records */}
-          <LedgerSummary />
-
-          {/* 6. Ajo Group Hub */}
+          {/* 5. Ajo Group Hub */}
           <AjoGroupHub />
 
-          {/* 7. Obligations */}
+          {/* 6. Obligations */}
           <ExpressExpenseList />
         </div>
       </div>
     </div>
   );
 }
-

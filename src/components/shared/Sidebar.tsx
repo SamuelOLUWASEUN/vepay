@@ -156,7 +156,7 @@ export function Sidebar({
         expanded ? 'gap-3 px-4 py-4 justify-between' : 'flex-col py-4 px-2 gap-2'].join(' ')}>
         <div className={['h-9 w-9 rounded-xl flex items-center justify-center shrink-0 font-display font-black text-sm',
           isExpress ? 'bg-express-ink text-express-bg' : 'bg-pro-violet text-white'].join(' ')}>
-          VP
+          TK
         </div>
         {expanded && (
           <div className="flex-1 min-w-0">
@@ -294,16 +294,22 @@ export function Sidebar({
         onClick={onOpenMobile}
         className={[
           'sm:hidden fixed top-0 left-0 z-[55] h-14 w-14 flex items-center justify-center',
-          border, bg, ink,
+          'transition-colors',
+          isExpress ? 'text-express-ink' : 'text-pro-ink',
         ].join(' ')}
         aria-label="Open navigation"
       >
-        <Menu className="h-5 w-5" />
+        <div className={[
+          'h-10 w-10 rounded-xl flex items-center justify-center shadow-md border',
+          border, bg,
+        ].join(' ')}>
+          <Menu className="h-5 w-5" />
+        </div>
       </button>
 
       {/* ── Mobile: backdrop + left-slide panel ─────────────────────────── */}
       {mobileOpen && (
-        <div className="sm:hidden fixed inset-0 z-50">
+        <div className="sm:hidden fixed inset-0 z-[60]">
           {/* Backdrop — tap to close */}
           <div
             className="absolute inset-0 animate-backdrop-in"
@@ -325,7 +331,7 @@ export function Sidebar({
               <div className="flex items-center gap-2.5">
                 <div className={['h-8 w-8 rounded-xl flex items-center justify-center font-display font-black text-xs',
                   isExpress ? 'bg-express-ink text-express-bg' : 'bg-pro-violet text-white'].join(' ')}>
-                  VP
+                  TK
                 </div>
                 <p className={['font-display font-bold text-sm', ink].join(' ')}>Vepay</p>
               </div>
@@ -415,7 +421,12 @@ export function Sidebar({
               {/* User + sign out */}
               <div className="px-3 pb-6">
                 {user && (
-                  <div className="flex items-center gap-3 px-2 py-3 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => { onOpenProfile(); onCloseMobile(); }}
+                    className={['w-full flex items-center gap-3 px-2 py-3 mb-1 rounded-xl text-left transition-colors',
+                      isExpress ? 'hover:bg-express-bg' : 'hover:bg-pro-surface-2'].join(' ')}
+                  >
                     <div
                       className="h-10 w-10 rounded-xl flex items-center justify-center font-display font-bold text-sm text-white shrink-0"
                       style={{ backgroundColor: user.avatarColor }}
@@ -424,9 +435,9 @@ export function Sidebar({
                     </div>
                     <div className="min-w-0">
                       <p className={['font-semibold text-sm truncate', ink].join(' ')}>{user.name}</p>
-                      <p className={['text-xs truncate', muted].join(' ')}>{user.email}</p>
+                      <p className={['text-xs truncate', muted].join(' ')}>{user.email} · tap to view profile</p>
                     </div>
-                  </div>
+                  </button>
                 )}
                 <button
                   type="button"
@@ -532,5 +543,3 @@ export function DevToolsModal({ open, onClose }: { open: boolean; onClose: () =>
     </div>
   );
 }
-
-

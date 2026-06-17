@@ -93,10 +93,8 @@ export function TrafficLightRing() {
 
   const { Icon } = ringColors;
 
-  // Auto-expand when status turns bad
-  useMemo(() => {
-    if (needsAction) setExpanded(true);
-  }, [needsAction]);
+  // Don't auto-expand on mount — the header would be pushed off screen.
+  // The ring is tappable and the user can open the sheet when ready.
 
   return (
     <div className="flex flex-col items-center gap-0 py-4">
