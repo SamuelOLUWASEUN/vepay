@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ClearSpendProvider, useClearSpend } from './context/ClearSpendContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpressDashboard } from './components/express/ExpressDashboard';
@@ -28,6 +28,25 @@ function VepayApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingsOpen, setSavingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Lock body scroll when any full-screen overlay is open
+  const anyOverlayOpen = savingsOpen || profileOpen || mobileSidebarOpen;
+  useEffect(() => {
+    if (anyOverlayOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [anyOverlayOpen]);
 
   const inviteProps = useMemo(() => {
     if (!inviteModal?.open) return null;

@@ -201,7 +201,10 @@ export function SavingsPage({ onClose }: SavingsPageProps) {
     <>
       {celebration && <ConfettiBurst />}
 
-      <div className="fixed inset-0 z-[60] flex flex-col bg-express-bg overflow-y-auto animate-backdrop-in">
+      <div
+        className="fixed inset-0 z-[60] flex flex-col bg-express-bg overflow-y-auto overscroll-contain animate-backdrop-in"
+        onTouchMove={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-express-bg border-b border-express-border px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">

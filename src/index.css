@@ -221,6 +221,13 @@
     animation: due-pulse 2s ease-in-out infinite;
   }
 
+  /* Prevent background scroll when overlay is open */
+  body.overflow-hidden {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-ring-pulse::before,
     .animate-waveform > span,

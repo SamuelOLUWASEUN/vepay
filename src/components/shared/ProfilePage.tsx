@@ -15,7 +15,10 @@ export function ProfilePage({ onClose }: ProfilePageProps) {
   const joinedDate = user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Today';
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-express-bg overflow-y-auto animate-backdrop-in">
+    <div
+      className="fixed inset-0 z-[60] flex flex-col bg-express-bg overflow-y-auto overscroll-contain animate-backdrop-in"
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       <div className="sticky top-0 z-10 bg-express-bg border-b border-express-border px-4 py-4 flex items-center justify-between">
         <p className="font-display font-bold text-lg text-express-ink">My Account</p>
         <button type="button" onClick={onClose} className="p-2 rounded-full text-express-muted">

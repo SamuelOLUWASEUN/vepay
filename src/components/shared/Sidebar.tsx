@@ -156,7 +156,7 @@ export function Sidebar({
         expanded ? 'gap-3 px-4 py-4 justify-between' : 'flex-col py-4 px-2 gap-2'].join(' ')}>
         <div className={['h-9 w-9 rounded-xl flex items-center justify-center shrink-0 font-display font-black text-sm',
           isExpress ? 'bg-express-ink text-express-bg' : 'bg-pro-violet text-white'].join(' ')}>
-          TK
+          VP
         </div>
         {expanded && (
           <div className="flex-1 min-w-0">
@@ -331,7 +331,7 @@ export function Sidebar({
               <div className="flex items-center gap-2.5">
                 <div className={['h-8 w-8 rounded-xl flex items-center justify-center font-display font-black text-xs',
                   isExpress ? 'bg-express-ink text-express-bg' : 'bg-pro-violet text-white'].join(' ')}>
-                  TK
+                  VP
                 </div>
                 <p className={['font-display font-bold text-sm', ink].join(' ')}>Vepay</p>
               </div>
@@ -433,9 +433,12 @@ export function Sidebar({
                     >
                       {user.initials}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className={['font-semibold text-sm truncate', ink].join(' ')}>{user.name}</p>
-                      <p className={['text-xs truncate', muted].join(' ')}>{user.email} · tap to view profile</p>
+                      <p className={['text-xs truncate', muted].join(' ')}>{user.email}</p>
+                      <p className={['text-[10px] font-medium mt-0.5', isExpress ? 'text-express-green' : 'text-pro-violet'].join(' ')}>
+                        View profile →
+                      </p>
                     </div>
                   </button>
                 )}
