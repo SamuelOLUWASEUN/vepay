@@ -293,7 +293,7 @@ export function Sidebar({
         type="button"
         onClick={onOpenMobile}
         className={[
-          'sm:hidden fixed top-4 left-4 z-40 h-10 w-10 rounded-xl flex items-center justify-center shadow-md border',
+          'sm:hidden fixed top-0 left-0 z-[55] h-14 w-14 flex items-center justify-center',
           border, bg, ink,
         ].join(' ')}
         aria-label="Open navigation"
@@ -532,4 +532,5 @@ export function DevToolsModal({ open, onClose }: { open: boolean; onClose: () =>
     </div>
   );
 }
+
 

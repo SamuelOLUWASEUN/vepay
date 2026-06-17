@@ -13,7 +13,7 @@ import { AjoGroupHub } from './AjoGroupHub';
 export function ExpressDashboard() {
   return (
     <div className="min-h-screen bg-express-bg pb-24">
-      <div className="mx-auto max-w-xl px-4 pt-6">
+      <div className="mx-auto max-w-xl px-4 pt-16 sm:pt-6">
         <header className="flex items-center justify-between mb-4 pl-12 sm:pl-0">
           <div>
             <p className="font-display text-2xl font-extrabold text-express-ink">Vepay</p>
@@ -54,3 +54,4 @@ export function ExpressDashboard() {
     </div>
   );
 }
+
