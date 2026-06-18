@@ -51,29 +51,34 @@
   /* Root — never let anything make the page wider than the screen */
   html {
     overflow-x: hidden;
-    /* Do NOT use overscroll-behavior: none here — it blocks page scrolling on Android */
+    /* Safari: prevent elastic scroll causing layout glitch */
+    -webkit-overflow-scrolling: auto;
   }
 
   body {
     margin: 0;
     font-family: var(--font-sans);
     overflow-x: hidden;
-    /* Do NOT use 100dvw — it triggers zoom on iOS Safari */
     width: 100%;
-    /* Allow normal vertical scrolling */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    /* Safari: ensure body fills screen height for proper scroll */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
   #root {
     overflow-x: hidden;
     width: 100%;
     max-width: 100%;
-    /* Do NOT set min-height here — it can lock scroll on Android */
+    /* Safari: use -webkit-fill-available for proper full height */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
-  img, video, iframe, table {
-    max-width: 100%;
+  /* Safari fix: inputs need explicit font-size 16px to prevent auto-zoom */
+  input, textarea, select {
+    font-size: 16px !important;
   }
 }
 

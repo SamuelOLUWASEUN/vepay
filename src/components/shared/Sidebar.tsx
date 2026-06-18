@@ -288,22 +288,39 @@ export function Sidebar({
         {content}
       </aside>
 
-      {/* ── Mobile: hamburger button in top-left ─────────────────────────── */}
+      {/* ── Mobile: hamburger — sits in sticky header zone ─────────── */}
       <button
         type="button"
         onClick={onOpenMobile}
-        className={[
-          'sm:hidden fixed top-0 left-0 z-[55] h-14 w-14 flex items-center justify-center',
-          'transition-colors',
-          isExpress ? 'text-express-ink' : 'text-pro-ink',
-        ].join(' ')}
+        className="sm:hidden"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          zIndex: 50,
+          width: '56px',
+          height: '58px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: isExpress ? 'var(--express-ink)' : 'var(--pro-ink)',
+        }}
         aria-label="Open navigation"
       >
-        <div className={[
-          'h-10 w-10 rounded-xl flex items-center justify-center shadow-md border',
-          border, bg,
-        ].join(' ')}>
-          <Menu className="h-5 w-5" />
+        <div style={{
+          width: '38px', height: '38px',
+          borderRadius: '10px',
+          border: `1px solid ${isExpress ? 'var(--express-border)' : 'var(--pro-border)'}`,
+          background: isExpress ? 'var(--express-bg)' : 'var(--pro-bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        }}>
+          <Menu style={{ width: '18px', height: '18px' }} />
         </div>
       </button>
 

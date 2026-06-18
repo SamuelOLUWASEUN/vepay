@@ -1,35 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, X, Check } from 'lucide-react';
 import { useClearSpend } from '../../context/ClearSpendContext';
 import { formatCurrency } from '../../lib/currency';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Inputs defined OUTSIDE to prevent remount on every state change
-// ─────────────────────────────────────────────────────────────────────────────
-
+// Inputs OUTSIDE component to prevent remount
 interface AmountInputProps {
   value: string;
   onChange: (v: string) => void;
   onEnter: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 }
 
-function AmountInput({ value, onChange, onEnter }: AmountInputProps) {
+function AmountInput({ value, onChange, onEnter, inputRef }: AmountInputProps) {
   return (
-    <div className="relative">
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-xl text-express-muted">
-        ₦
-      </span>
+    <div style={{ position: 'relative' }}>
+      <span style={{
+        position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+        fontFamily: 'monospace', fontWeight: 700, fontSize: '20px', color: 'var(--express-muted)',
+        pointerEvents: 'none',
+      }}>₦</span>
       <input
+        ref={inputRef}
         id="quick-log-amount"
         type="number"
-        inputMode="numeric"
+        inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') onEnter(); }}
         placeholder="0"
         min="1"
-        autoFocus
-        className="w-full rounded-2xl border-2 border-express-border bg-express-bg pl-10 pr-4 py-4 font-mono text-2xl font-bold text-express-ink placeholder-express-border outline-none focus:border-express-green transition-colors"
+        style={{
+          width: '100%', borderRadius: '16px',
+          border: '2px solid var(--express-border)',
+          background: 'var(--express-bg)',
+          paddingLeft: '40px', paddingRight: '16px',
+          paddingTop: '16px', paddingBottom: '16px',
+          fontFamily: 'monospace', fontSize: '24px', fontWeight: 700,
+          color: 'var(--express-ink)', outline: 'none',
+          boxSizing: 'border-box',
+          WebkitAppearance: 'none',
+        }}
       />
     </div>
   );
@@ -51,14 +61,18 @@ function LabelInput({ value, onChange, onEnter }: LabelInputProps) {
       onKeyDown={(e) => { if (e.key === 'Enter') onEnter(); }}
       placeholder="What was it? (Suya, Airtime, Fuel…)"
       maxLength={40}
-      className="w-full rounded-xl border border-express-border bg-express-bg px-4 py-3 text-sm text-express-ink placeholder-express-muted outline-none focus:border-express-green transition-colors"
+      style={{
+        width: '100%', borderRadius: '12px',
+        border: '1px solid var(--express-border)',
+        background: 'var(--express-bg)',
+        padding: '12px 16px', fontSize: '14px',
+        color: 'var(--express-ink)', outline: 'none',
+        boxSizing: 'border-box',
+        WebkitAppearance: 'none',
+      }}
     />
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Quick Log Modal
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface QuickLogModalProps {
   open: boolean;
@@ -70,14 +84,45 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
   const [amount, setAmount] = useState('');
   const [label, setLabel] = useState('');
   const [logged, setLogged] = useState(false);
+  const [modalBottom, setModalBottom] = useState(0);
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  // ── Keyboard avoidance using visualViewport API ───────────────────────────
+  // This is the ONLY reliable way to handle keyboard on iOS Safari + Android
+  useEffect(() => {
+    if (!open) return;
+
+    function handleViewportResize() {
+      if (window.visualViewport) {
+        const viewport = window.visualViewport;
+        const windowHeight = window.innerHeight;
+        const viewportHeight = viewport.height;
+        const keyboardHeight = windowHeight - viewportHeight - viewport.offsetTop;
+        setModalBottom(Math.max(0, keyboardHeight));
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      window.visualViewport.addEventListener('scroll', handleViewportResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportResize);
+        window.visualViewport.removeEventListener('scroll', handleViewportResize);
+      }
+      setModalBottom(0);
+    };
+  }, [open]);
 
   if (!open) return null;
 
   const pct = Math.min(todaySpendNGN / dailyBudgetNGN, 1);
   const isOver = todaySpendNGN > dailyBudgetNGN;
   const isWarn = pct >= 0.7 && !isOver;
-  const barColor = isOver ? 'bg-express-red' : isWarn ? 'bg-express-amber' : 'bg-express-green';
-  const totalColor = isOver ? 'text-express-red' : isWarn ? 'text-express-amber' : 'text-express-green';
+  const barColor = isOver ? '#e5484d' : isWarn ? '#f5a623' : '#0f9d58';
+  const totalColor = isOver ? '#e5484d' : isWarn ? '#f5a623' : 'var(--express-ink)';
 
   function handleLog() {
     const val = parseFloat(amount);
@@ -93,74 +138,111 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
   }
 
   return (
+    // Full screen backdrop
     <div
-      className="fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-4 animate-backdrop-in"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 55,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        WebkitBackdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        // Move modal up by keyboard height
+        paddingBottom: `${modalBottom}px`,
+        transition: 'padding-bottom 0.1s ease',
+      }}
     >
-      <div className="w-full max-w-sm bg-express-surface rounded-3xl border border-express-border shadow-2xl overflow-hidden animate-modal-in">
-
+      {/* Modal card */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '440px',
+          margin: '0 auto',
+          background: 'var(--express-surface)',
+          borderRadius: '24px 24px 0 0',
+          border: '1px solid var(--express-border)',
+          borderBottom: 'none',
+          overflow: 'hidden',
+          // Safe area bottom padding for iPhone notch
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-express-border bg-express-bg">
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 20px', borderBottom: '1px solid var(--express-border)',
+          background: 'var(--express-bg)',
+        }}>
           <div>
-            <p className="font-display font-bold text-express-ink">Log a spend</p>
-            <p className="text-xs text-express-muted mt-0.5">Add it now before you forget</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--express-ink)', fontSize: '16px', margin: 0 }}>
+              Log a spend
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--express-muted)', marginTop: '2px' }}>
+              Add it now before you forget
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-1.5 text-express-muted hover:text-express-ink transition-colors"
-          >
-            <X className="h-5 w-5" />
+          <button type="button" onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '50%', color: 'var(--express-muted)' }}>
+            <X style={{ width: '20px', height: '20px' }} />
           </button>
         </div>
 
-        {/* Today's running total */}
-        <div className="px-5 pt-4 pb-3">
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="text-xs text-express-muted font-semibold">Today so far</span>
-            <span className={['font-mono font-bold text-lg', totalColor].join(' ')}>
+        {/* Today's total */}
+        <div style={{ padding: '16px 20px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--express-muted)', fontWeight: 600 }}>Today so far</span>
+            <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '18px', color: totalColor }}>
               {formatCurrency(todaySpendNGN, 'NGN')}
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-express-border overflow-hidden">
-            <div
-              className={['h-full rounded-full transition-all duration-500', barColor].join(' ')}
-              style={{ width: `${Math.min(pct * 100, 100)}%` }}
-            />
+          <div style={{ height: '6px', borderRadius: '9999px', background: 'var(--express-border)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: '9999px', background: barColor, width: `${Math.min(pct * 100, 100)}%`, transition: 'width 0.5s ease' }} />
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-express-muted">
-              {isOver
-                ? `₦${Math.abs(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} over`
-                : `₦${(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} left`}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--express-muted)' }}>
+              {isOver ? `₦${Math.abs(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} over` : `₦${(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} left`}
             </span>
-            <span className="text-[10px] text-express-muted">
+            <span style={{ fontSize: '10px', color: 'var(--express-muted)' }}>
               Budget: {formatCurrency(dailyBudgetNGN, 'NGN')}
             </span>
           </div>
         </div>
 
         {/* Inputs */}
-        <div className="px-5 pb-5 flex flex-col gap-3">
-          <AmountInput value={amount} onChange={setAmount} onEnter={handleLog} />
+        <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <AmountInput value={amount} onChange={setAmount} onEnter={handleLog} inputRef={amountRef} />
           <LabelInput value={label} onChange={setLabel} onEnter={handleLog} />
 
           <button
             type="button"
             onClick={handleLog}
             disabled={!amount || parseFloat(amount) <= 0 || logged}
-            className={[
-              'w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 font-display font-bold text-base transition-all',
-              logged
-                ? 'bg-express-green-soft text-express-green'
-                : 'bg-express-ink text-express-bg disabled:opacity-40',
-            ].join(' ')}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: '16px',
+              border: 'none',
+              cursor: logged ? 'default' : 'pointer',
+              background: logged ? 'var(--express-green-soft)' : 'var(--express-ink)',
+              color: logged ? '#0f9d58' : 'var(--express-bg)',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: (!amount || parseFloat(amount) <= 0) ? 0.4 : 1,
+              transition: 'all 0.2s',
+            }}
           >
             {logged ? (
-              <><Check className="h-5 w-5" /> Logged!</>
+              <><Check style={{ width: '20px', height: '20px' }} /> Logged!</>
             ) : (
-              <>Log spend ₦{amount ? parseFloat(amount).toLocaleString('en-NG') : '—'}</>
+              <>Log spend {amount ? `₦${parseFloat(amount).toLocaleString('en-NG')}` : ''}</>
             )}
           </button>
         </div>
@@ -169,49 +251,38 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Floating Action Button + Modal — Express Mode only
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * QuickLogFAB — floating action button fixed to the bottom-right.
- *
- * Always visible in Express Mode regardless of scroll position.
- * One tap → compact modal → type amount → Log. Three seconds maximum.
- * The fastest possible path from "I just spent money" to "it's recorded."
- */
 export function QuickLogFAB() {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      {/* Floating button */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={[
-          'fixed bottom-6 right-6 z-40',
-          'h-16 w-16 rounded-full shadow-2xl',
-          'bg-express-green text-white',
-          'flex items-center justify-center',
-          'transition-all duration-200',
-          'hover:scale-110 active:scale-95',
-          open ? 'scale-0 opacity-0' : 'scale-100 opacity-100',
-        ].join(' ')}
         aria-label="Log a spend"
-        title="Log a spend"
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 40,
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          background: '#0f9d58',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
+          display: open ? 'none' : 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 24px rgba(15,157,88,0.4)',
+          transition: 'transform 0.2s',
+          // Safe area for iPhone home indicator
+          marginBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
-        <Plus className="h-8 w-8" strokeWidth={2.5} />
+        <Plus style={{ width: '32px', height: '32px' }} strokeWidth={2.5} />
       </button>
-
-      {/* Label that appears above the button */}
-      {!open && (
-        <div className="fixed bottom-24 right-4 z-40 pointer-events-none">
-          <div className="bg-express-ink text-express-bg text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg opacity-0 hover:opacity-100 transition-opacity">
-            Log a spend
-          </div>
-        </div>
-      )}
 
       <QuickLogModal open={open} onClose={() => setOpen(false)} />
     </>

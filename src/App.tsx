@@ -29,6 +29,11 @@ function VepayApp() {
   const [savingsOpen, setSavingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
+  // Scroll to top whenever the user switches between Express and Pro mode
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [currentMode]);
+
   // Lock body scroll when any full-screen overlay is open
   const anyOverlayOpen = savingsOpen || profileOpen || mobileSidebarOpen;
   useEffect(() => {
@@ -77,7 +82,9 @@ function VepayApp() {
       {/* Main content — on mobile: full width. On desktop: offset by sidebar */}
       <main style={{ flex: 1, minWidth: 0, width: '100%', overflowX: 'hidden' }}
         className={sidebarExpanded ? 'sm:ml-56' : 'sm:ml-16'}>
-        {currentMode === 'EXPRESS' ? <ExpressDashboard /> : <ProDashboard />}
+        {currentMode === 'EXPRESS'
+          ? <ExpressDashboard onOpenProfile={() => setProfileOpen(true)} />
+          : <ProDashboard onOpenProfile={() => setProfileOpen(true)} />}
       </main>
 
       {/* Global overlays */}
