@@ -11,8 +11,8 @@ import { AjoGroupHub } from './AjoGroupHub';
 
 export function ExpressDashboard() {
   return (
-    <div className="min-h-screen bg-express-bg pb-24 overflow-x-hidden">
-      <div className="mx-auto max-w-xl px-4 pt-16 sm:pt-6">
+    <div className="min-h-screen bg-express-bg pb-24 overflow-x-hidden w-full">
+      <div className="w-full max-w-xl mx-auto px-4 pt-16 sm:pt-6">
         <header className="flex items-center justify-between mb-4 pl-14 sm:pl-0">
           <div>
             <p className="font-display text-2xl font-extrabold text-express-ink">Vepay</p>

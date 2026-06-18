@@ -9,7 +9,7 @@ export function CurrencySegmentToggle() {
   const { displayCurrency, setDisplayCurrency } = useClearSpend();
 
   return (
-    <div className="inline-flex rounded-full border border-pro-border bg-pro-surface-2 p-1 shrink-0">
+    <div className="inline-flex w-fit rounded-full border border-pro-border bg-pro-surface-2 p-1 shrink-0">
       {(['USD', 'NGN'] as const).map((currency) => {
         const active = displayCurrency === currency;
         return (

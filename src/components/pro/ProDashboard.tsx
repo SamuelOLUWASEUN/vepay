@@ -14,8 +14,8 @@ import { SubscriptionGraveyard } from './SubscriptionGraveyard';
 
 export function ProDashboard() {
   return (
-    <div className="min-h-screen bg-pro-bg pb-16 overflow-x-hidden">
-      <div className="mx-auto max-w-2xl px-4 pt-16 sm:pt-6">
+    <div className="min-h-screen bg-pro-bg pb-16 overflow-x-hidden w-full">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-16 sm:pt-6">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2 pl-14 sm:pl-0">
           <div className="min-w-0">
             <p className="font-display text-2xl font-extrabold text-pro-ink">Vepay</p>

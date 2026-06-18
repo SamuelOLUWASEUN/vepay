@@ -65,7 +65,7 @@ function VepayApp() {
   if (!isAuthenticated) return <SignInPage />;
 
   return (
-    <div className="flex min-h-screen font-sans">
+    <div className="flex min-h-screen font-sans overflow-x-hidden">
       <Sidebar
         expanded={sidebarExpanded}
         mobileOpen={mobileSidebarOpen}
@@ -79,7 +79,7 @@ function VepayApp() {
       />
 
       <main className={[
-        'flex-1 transition-[margin] duration-300 min-w-0',
+        'flex-1 transition-[margin] duration-300 min-w-0 overflow-x-hidden w-full',
         sidebarExpanded ? 'sm:ml-56' : 'sm:ml-16',
       ].join(' ')}>
         {currentMode === 'EXPRESS' ? <ExpressDashboard /> : <ProDashboard />}
