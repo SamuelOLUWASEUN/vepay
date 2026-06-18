@@ -51,18 +51,17 @@
   /* Root — never let anything make the page wider than the screen */
   html {
     overflow-x: hidden;
-    /* iOS Safari: prevent bounce causing layout issues */
-    overscroll-behavior: none;
+    /* Do NOT use overscroll-behavior: none here — it blocks page scrolling on Android */
   }
 
   body {
     margin: 0;
     font-family: var(--font-sans);
     overflow-x: hidden;
-    /* Constrain body to viewport width absolutely */
-    max-width: 100dvw;
+    /* Do NOT use 100dvw — it triggers zoom on iOS Safari */
     width: 100%;
-    overscroll-behavior-y: contain;
+    /* Allow normal vertical scrolling */
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -70,10 +69,9 @@
     overflow-x: hidden;
     width: 100%;
     max-width: 100%;
-    min-height: 100dvh;
+    /* Do NOT set min-height here — it can lock scroll on Android */
   }
 
-  /* No element should ever cause horizontal scroll */
   img, video, iframe, table {
     max-width: 100%;
   }

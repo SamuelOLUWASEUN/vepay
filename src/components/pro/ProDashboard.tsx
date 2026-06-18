@@ -14,8 +14,8 @@ import { SubscriptionGraveyard } from './SubscriptionGraveyard';
 
 export function ProDashboard() {
   return (
-    <div style={{ width: '100%', overflowX: 'hidden' }} className="min-h-screen bg-pro-bg pb-16">
-      <div style={{ width: '100%', maxWidth: '672px', margin: '0 auto', padding: '0 16px' }}>
+    <div style={{ width: '100%' }} className="min-h-screen bg-pro-bg pb-16">
+      <div style={{ width: '100%', maxWidth: '672px', margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
         <div style={{ paddingTop: '72px' }} className="sm:pt-6">
 
           <header style={{ marginBottom: '16px' }}>

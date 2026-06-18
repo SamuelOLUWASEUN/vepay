@@ -32,30 +32,14 @@ function VepayApp() {
   // Lock body scroll when any full-screen overlay is open
   const anyOverlayOpen = savingsOpen || profileOpen || mobileSidebarOpen;
   useEffect(() => {
-    const scrollY = window.scrollY;
     if (anyOverlayOpen) {
+      // Simple overflow hidden — no position:fixed which freezes Android scroll position
       document.body.style.overflow = 'hidden';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.left = '0';
     } else {
-      const savedTop = document.body.style.top;
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.left = '';
-      if (savedTop) {
-        window.scrollTo(0, parseInt(savedTop || '0') * -1);
-      }
     }
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.left = '';
     };
   }, [anyOverlayOpen]);
 
@@ -76,8 +60,8 @@ function VepayApp() {
   if (!isAuthenticated) return <SignInPage />;
 
   return (
-    /* Root shell — never wider than viewport */
-    <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden', minHeight: '100dvh', display: 'flex' }}>
+    /* Root shell — never wider than viewport, allow normal scroll */
+    <div style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden', display: 'flex', minHeight: '100vh' }}>
       <Sidebar
         expanded={sidebarExpanded}
         mobileOpen={mobileSidebarOpen}

@@ -11,9 +11,9 @@ import { AjoGroupHub } from './AjoGroupHub';
 
 export function ExpressDashboard() {
   return (
-    <div style={{ width: '100%', overflowX: 'hidden' }} className="min-h-screen bg-express-bg pb-24">
-      {/* Safe area — 56px top padding on mobile to clear fixed hamburger, 24px on desktop */}
-      <div style={{ width: '100%', maxWidth: '560px', margin: '0 auto', padding: '0 16px' }}>
+    <div style={{ width: '100%' }} className="min-h-screen bg-express-bg pb-24">
+      {/* Safe area — 72px top padding on mobile to clear fixed hamburger */}
+      <div style={{ width: '100%', maxWidth: '560px', margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
         <div style={{ paddingTop: '72px' }} className="sm:pt-6">
 
           <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '16px' }}>
