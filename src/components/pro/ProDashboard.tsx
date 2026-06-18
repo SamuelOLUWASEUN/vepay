@@ -82,7 +82,6 @@ export function ProDashboard({ onOpenProfile }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <SpendForecast mode="PRO" />
-          <BurnRateMeter />
           <ApiCostTracker />
           <HealthScore />
           <WeeklyPlanCard mode="PRO" />
@@ -90,6 +89,8 @@ export function ProDashboard({ onOpenProfile }: Props) {
           <PremiumOverlay />
           <TrialCountdownCards />
           <SyndicateCard />
+          {/* Burn rate sits directly above the subscription list — same story */}
+          <BurnRateMeter />
           <SaaSExpenseList />
           <SubscriptionGraveyard />
         </div>

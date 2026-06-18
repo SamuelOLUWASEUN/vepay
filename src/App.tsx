@@ -65,8 +65,8 @@ function VepayApp() {
   if (!isAuthenticated) return <SignInPage />;
 
   return (
-    /* Root shell — never wider than viewport, allow normal scroll */
-    <div style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden', display: 'flex', minHeight: '100vh' }}>
+    /* Root shell */
+    <div style={{ width: '100%', display: 'flex', minHeight: '100vh' }}>
       <Sidebar
         expanded={sidebarExpanded}
         mobileOpen={mobileSidebarOpen}
@@ -79,8 +79,8 @@ function VepayApp() {
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      {/* Main content — on mobile: full width. On desktop: offset by sidebar */}
-      <main style={{ flex: 1, minWidth: 0, width: '100%', overflowX: 'hidden' }}
+      {/* Main — NO overflow:hidden here, it breaks position:sticky */}
+      <main style={{ flex: 1, minWidth: 0, width: '100%' }}
         className={sidebarExpanded ? 'sm:ml-56' : 'sm:ml-16'}>
         {currentMode === 'EXPRESS'
           ? <ExpressDashboard onOpenProfile={() => setProfileOpen(true)} />

@@ -821,8 +821,21 @@ export function ClearSpendProvider({ children }: { children: ReactNode }) {
 
   const generateInviteLink = useCallback(async (expenseId: string) => {
     const target = expenses.find((e) => e.id === expenseId);
-    const slug = target ? target.id : 'group';
-    const link = `https://vepay.app/join/${slug}-${Math.random().toString(36).slice(2, 8)}`;
+    if (!target) return;
+
+    // Build a real URL that routes to vepay.vercel.app with join context
+    // The SignInPage reads these params and shows a join banner
+    const params = new URLSearchParams({
+      join: '1',
+      sub: target.name,
+      amount: String(Math.round(target.amount)),
+      currency: target.currency,
+      from: 'a friend', // prototype: in production this would be the user's real name
+      group: target.sharedGroup?.name ?? `${target.name} Squad`,
+      ref: Math.random().toString(36).slice(2, 8), // unique ref for tracking
+    });
+
+    const link = `https://vepay.vercel.app/?${params.toString()}`;
     setInviteModal({ open: true, link, expenseId });
   }, [expenses]);
 

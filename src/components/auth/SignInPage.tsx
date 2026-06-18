@@ -67,13 +67,27 @@ export function SignInPage() {
   const { signIn } = useAuth();
   const { isDark } = useTheme();
 
+  // ── Read join invite params from URL ─────────────────────────────────────
+  // When a friend taps a syndicate invite link, these params are present
+  const urlParams = new URLSearchParams(window.location.search);
+  const joinInvite = urlParams.get('join') === '1' ? {
+    sub: urlParams.get('sub') ?? 'a subscription',
+    amount: urlParams.get('amount') ?? '0',
+    currency: urlParams.get('currency') ?? 'NGN',
+    from: urlParams.get('from') ?? 'a friend',
+    group: urlParams.get('group') ?? 'a group',
+  } : null;
+
   const [flow, setFlow] = useState<'signup' | 'signin'>('signup');
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<'EXPRESS' | 'PRO' | null>(null);
+  // If coming from invite link, default to PRO mode (it's a subscription split)
+  const [selectedMode, setSelectedMode] = useState<'EXPRESS' | 'PRO' | null>(
+    joinInvite ? 'PRO' : null
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // ── Validation ──────────────────────────────────────────────────────────
@@ -159,6 +173,76 @@ export function SignInPage() {
   return (
     <div className={['min-h-screen flex items-center justify-center p-4', bg].join(' ')}>
       <div className="w-full max-w-md">
+
+        {/* ── Invite banner — shown when user arrives via syndicate link ── */}
+        {joinInvite && (
+          <div style={{
+            marginBottom: '20px',
+            borderRadius: '20px',
+            border: '1px solid rgba(63,224,197,0.3)',
+            background: isDark ? 'rgba(63,224,197,0.07)' : 'rgba(15,157,88,0.06)',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '28px' }}>🎉</span>
+              <div>
+                <p style={{
+                  fontSize: '14px', fontWeight: 700,
+                  color: isDark ? '#e6e8eb' : '#2b1810',
+                  margin: 0,
+                  fontFamily: 'var(--font-display)',
+                }}>
+                  {joinInvite.from} invited you!
+                </p>
+                <p style={{ fontSize: '12px', color: isDark ? '#8b949e' : '#9c8a7c', margin: 0 }}>
+                  Join the <strong>{joinInvite.group}</strong> split
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              borderRadius: '12px',
+              background: isDark ? 'rgba(63,224,197,0.1)' : 'rgba(15,157,88,0.08)',
+              padding: '10px 14px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <p style={{ fontSize: '11px', color: isDark ? '#8b949e' : '#9c8a7c', margin: 0 }}>
+                  Your share of {joinInvite.sub}
+                </p>
+                <p style={{
+                  fontSize: '20px', fontWeight: 800,
+                  fontFamily: 'monospace',
+                  color: isDark ? '#3fe0c5' : '#0f9d58',
+                  margin: 0,
+                }}>
+                  {joinInvite.currency === 'NGN' ? '₦' : '$'}
+                  {Number(joinInvite.amount).toLocaleString('en-NG')}<span style={{ fontSize: '12px', fontWeight: 400, color: isDark ? '#8b949e' : '#9c8a7c' }}>/mo</span>
+                </p>
+              </div>
+              <div style={{
+                background: isDark ? '#3fe0c5' : '#0f9d58',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+              }}>
+                SPLIT DEAL
+              </div>
+            </div>
+
+            <p style={{ fontSize: '11px', color: isDark ? '#8b949e' : '#9c8a7c', margin: 0, textAlign: 'center' }}>
+              Create a free account to accept this split and pay your share via Nomba
+            </p>
+          </div>
+        )}
 
         {/* Logo */}
         <div className="text-center mb-8">
@@ -367,4 +451,3 @@ export function SignInPage() {
     </div>
   );
 }
-

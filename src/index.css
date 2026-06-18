@@ -50,33 +50,28 @@
 
   /* Root — never let anything make the page wider than the screen */
   html {
-    overflow-x: hidden;
-    /* Safari: prevent elastic scroll causing layout glitch */
+    overflow-x: clip; /* clip is better than hidden for Safari - doesn't break sticky */
     -webkit-overflow-scrolling: auto;
   }
 
   body {
     margin: 0;
     font-family: var(--font-sans);
-    overflow-x: hidden;
+    overflow-x: clip;
     width: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    /* Safari: ensure body fills screen height for proper scroll */
     min-height: 100vh;
     min-height: -webkit-fill-available;
   }
 
   #root {
-    overflow-x: hidden;
     width: 100%;
-    max-width: 100%;
-    /* Safari: use -webkit-fill-available for proper full height */
     min-height: 100vh;
     min-height: -webkit-fill-available;
   }
 
-  /* Safari fix: inputs need explicit font-size 16px to prevent auto-zoom */
+  /* Safari: font-size 16px on all inputs prevents auto-zoom */
   input, textarea, select {
     font-size: 16px !important;
   }
