@@ -6,7 +6,7 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Express Mode palette — resolved from CSS vars for dark/light theme support */
+  /* Express Mode palette */
   --color-express-bg: var(--express-bg, #fbf3e7);
   --color-express-surface: var(--express-surface, #ffffff);
   --color-express-ink: var(--express-ink, #2b1810);
@@ -19,7 +19,7 @@
   --color-express-red-soft: var(--express-red-soft, #fbe7e8);
   --color-express-border: var(--express-border, #f0e1cd);
 
-  /* Pro Mode palette — resolved from CSS vars for dark/light theme support */
+  /* Pro Mode palette */
   --color-pro-bg: var(--pro-bg, #0b0e14);
   --color-pro-surface: var(--pro-surface, #131722);
   --color-pro-surface-2: var(--pro-surface-2, #1a1f2e);
@@ -33,70 +33,58 @@
   --color-pro-red-soft: var(--pro-red-soft, #2a1620);
   --color-pro-amber: #ffb950;
 
-  /* Shared */
   --color-ngn: #0f9d58;
   --color-usd: #7c5cff;
 }
 
 @layer base {
-  * {
+  /* Reset */
+  *, *::before, *::after {
+    box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Prevent text size adjustment on Android after orientation change */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  html,
-  body,
-  #root {
-    height: 100%;
+  /* Root — never let anything make the page wider than the screen */
+  html {
     overflow-x: hidden;
-    max-width: 100vw;
+    /* iOS Safari: prevent bounce causing layout issues */
+    overscroll-behavior: none;
   }
 
   body {
     margin: 0;
     font-family: var(--font-sans);
-    /* Native momentum scrolling on iOS/Android */
-    -webkit-overflow-scrolling: touch;
-    /* Prevent pull-to-refresh interfering with app scroll */
+    overflow-x: hidden;
+    /* Constrain body to viewport width absolutely */
+    max-width: 100dvw;
+    width: 100%;
     overscroll-behavior-y: contain;
-  }
-
-  /* All scrollable containers get momentum scrolling */
-  * {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Ensure minimum tap target size (44px) for interactive elements on mobile.
-     Applied as padding compensation rather than min-height to avoid
-     breaking icon-only buttons in the sidebar rail. */
-  button:not([data-icon-only]), [role="switch"] {
-    min-height: 44px;
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
   }
 
-  /* Remove tap highlight on Android/Chrome */
-  * {
-    -webkit-tap-highlight-color: transparent;
+  /* No element should ever cause horizontal scroll */
+  img, video, iframe, table {
+    max-width: 100%;
   }
 }
 
 @layer utilities {
-  /* Traffic light ring pulse — Express Mode signature */
+  /* Traffic light ring pulse */
   @keyframes pulse-ring {
-    0% {
-      box-shadow: 0 0 0 0 currentColor;
-      opacity: 1;
-    }
-    70% {
-      box-shadow: 0 0 0 24px transparent;
-      opacity: 0;
-    }
-    100% {
-      box-shadow: 0 0 0 0 transparent;
-      opacity: 0;
-    }
+    0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    70% { box-shadow: 0 0 0 24px transparent; opacity: 0; }
+    100% { box-shadow: 0 0 0 0 transparent; opacity: 0; }
   }
 
   .animate-ring-pulse::before {
@@ -108,13 +96,8 @@
   }
 
   @keyframes waveform {
-    0%,
-    100% {
-      transform: scaleY(0.3);
-    }
-    50% {
-      transform: scaleY(1);
-    }
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
   }
 
   .animate-waveform > span {
@@ -123,13 +106,8 @@
   }
 
   @keyframes burn-tick {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.55;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
   }
 
   .animate-burn-tick {
@@ -137,83 +115,46 @@
   }
 
   @keyframes processing-sweep {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
   .animate-processing-sweep {
     animation: processing-sweep 1.2s linear infinite;
   }
 
-  /* Toast slide-up + fade */
   @keyframes toast-in {
-    0% {
-      opacity: 0;
-      transform: translateY(12px) scale(0.97);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes toast-out {
-    0% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: translateY(8px) scale(0.96);
-    }
+    0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
   }
 
   .animate-toast-in {
     animation: toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  /* Modal backdrop fade */
   @keyframes backdrop-in {
     from { opacity: 0; }
     to { opacity: 1; }
   }
 
   @keyframes modal-in {
-    0% {
-      opacity: 0;
-      transform: scale(0.95) translateY(16px);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
+    0% { opacity: 0; transform: scale(0.95) translateY(16px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
   }
 
   .animate-backdrop-in {
     animation: backdrop-in 0.18s ease forwards;
   }
 
-  /* Mobile sidebar slides in from left */
   @keyframes slideInLeft {
-    0% {
-      opacity: 0;
-      transform: translateX(-100%);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    0% { opacity: 0; transform: translateX(-100%); }
+    100% { opacity: 1; transform: translateX(0); }
   }
 
   .animate-modal-in {
     animation: modal-in 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  /* Calendar day pulse for due-today items */
   @keyframes due-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.5); }
     50% { box-shadow: 0 0 0 6px rgba(229, 72, 77, 0); }
@@ -221,13 +162,6 @@
 
   .animate-due-pulse {
     animation: due-pulse 2s ease-in-out infinite;
-  }
-
-  /* Prevent background scroll when overlay is open */
-  body.overflow-hidden {
-    overflow: hidden !important;
-    position: fixed;
-    width: 100%;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -244,12 +178,7 @@
   }
 }
 
-/* ============================================================================
-   THEME SYSTEM — Dark / Light mode via CSS custom property swap
-   Express Mode has both light (warm cream) and dark (deep brown) variants.
-   Pro Mode has both dark (near-black) and light (clean slate) variants.
-   The [data-theme="dark"] attribute is set on <html> by ThemeContext.
-   ============================================================================ */
+/* ── Theme system ─────────────────────────────────────────────────────────── */
 
 :root {
   --express-bg: #fbf3e7;
@@ -260,7 +189,6 @@
   --express-green-soft: #e3f5ec;
   --express-amber-soft: #fef2dd;
   --express-red-soft: #fbe7e8;
-
   --pro-bg: #0b0e14;
   --pro-surface: #131722;
   --pro-surface-2: #1a1f2e;
@@ -272,7 +200,6 @@
 }
 
 [data-theme="dark"] {
-  /* Express dark — deep warm brown, market-night energy */
   --express-bg: #1a1008;
   --express-surface: #241508;
   --express-ink: #f5e6d3;
@@ -281,8 +208,6 @@
   --express-green-soft: #0a2e1a;
   --express-amber-soft: #2e1e08;
   --express-red-soft: #2e0e0e;
-
-  /* Pro dark — unchanged, it's already dark */
   --pro-bg: #0b0e14;
   --pro-surface: #131722;
   --pro-surface-2: #1a1f2e;
@@ -294,7 +219,6 @@
 }
 
 [data-theme="light"] {
-  /* Pro light — clean slate, like Linear or Vercel light */
   --pro-bg: #f7f8fa;
   --pro-surface: #ffffff;
   --pro-surface-2: #f0f2f5;

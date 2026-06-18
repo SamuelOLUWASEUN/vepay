@@ -70,7 +70,7 @@ export function SaaSExpenseList() {
           <div
             key={expense.id}
             className={[
-              'flex items-center gap-3 rounded-2xl border px-4 py-3.5 shadow-sm transition-colors',
+              'flex items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-sm transition-colors',
               isFailed
                 ? 'border-pro-red/40 bg-pro-red-soft animate-pulse'
                 : 'border-pro-border bg-pro-surface',
@@ -99,7 +99,7 @@ export function SaaSExpenseList() {
               </p>
             </div>
 
-                <div className="flex flex-col items-end gap-1.5 shrink-0 max-w-[120px]">
+            <div className="flex flex-col items-end gap-1.5 shrink-0 ml-auto">
               <span className="font-mono text-sm font-semibold text-pro-ink">
                 {formatConverted(expense.amount, expense.currency, displayCurrency)}
               </span>

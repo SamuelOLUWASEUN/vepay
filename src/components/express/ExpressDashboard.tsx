@@ -11,40 +11,35 @@ import { AjoGroupHub } from './AjoGroupHub';
 
 export function ExpressDashboard() {
   return (
-    <div className="min-h-screen bg-express-bg pb-24 overflow-x-hidden w-full">
-      <div className="w-full max-w-xl mx-auto px-4 pt-16 sm:pt-6">
-        <header className="flex items-center justify-between mb-4 pl-14 sm:pl-0">
-          <div>
-            <p className="font-display text-2xl font-extrabold text-express-ink">Vepay</p>
-            <p className="text-xs text-express-muted">Express Mode · Daily money, made simple</p>
+    <div style={{ width: '100%', overflowX: 'hidden' }} className="min-h-screen bg-express-bg pb-24">
+      {/* Safe area — 56px top padding on mobile to clear fixed hamburger, 24px on desktop */}
+      <div style={{ width: '100%', maxWidth: '560px', margin: '0 auto', padding: '0 16px' }}>
+        <div style={{ paddingTop: '72px' }} className="sm:pt-6">
+
+          <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '16px' }}>
+            <div style={{ minWidth: 0 }}>
+              <p className="font-display text-2xl font-extrabold text-express-ink">Vepay</p>
+              <p className="text-xs text-express-muted">Express Mode · Daily money, made simple</p>
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <OfflineSyncBadge />
+            </div>
+          </header>
+
+          <div style={{ marginBottom: '16px' }}>
+            <BannerStack mode="EXPRESS" />
           </div>
-          <OfflineSyncBadge />
-        </header>
 
-        <div className="mb-4">
-          <BannerStack mode="EXPRESS" />
-        </div>
-
-        <div className="grid gap-4">
-          {/* 1. Status */}
-          <TrafficLightRing />
-          <SpendForecast mode="EXPRESS" />
-
-          {/* 2. Daily spend analytics */}
-          <DailySpendTracker />
-
-          {/* 3. Action */}
-          <ActionGrid />
-          <VoiceWaveform />
-
-          {/* 4. This Week's Plan — calendar + envelopes merged */}
-          <WeeklyPlanCard mode="EXPRESS" />
-
-          {/* 5. Ajo Group Hub */}
-          <AjoGroupHub />
-
-          {/* 6. Obligations */}
-          <ExpressExpenseList />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <TrafficLightRing />
+            <SpendForecast mode="EXPRESS" />
+            <DailySpendTracker />
+            <ActionGrid />
+            <VoiceWaveform />
+            <WeeklyPlanCard mode="EXPRESS" />
+            <AjoGroupHub />
+            <ExpressExpenseList />
+          </div>
         </div>
       </div>
     </div>

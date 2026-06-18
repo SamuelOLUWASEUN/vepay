@@ -14,47 +14,39 @@ import { SubscriptionGraveyard } from './SubscriptionGraveyard';
 
 export function ProDashboard() {
   return (
-    <div className="min-h-screen bg-pro-bg pb-16 overflow-x-hidden w-full">
-      <div className="w-full max-w-2xl mx-auto px-4 pt-16 sm:pt-6">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2 pl-14 sm:pl-0">
-          <div className="min-w-0">
-            <p className="font-display text-2xl font-extrabold text-pro-ink">Vepay</p>
-            <p className="text-xs text-pro-muted">Pro Mode · Your subscription command center</p>
+    <div style={{ width: '100%', overflowX: 'hidden' }} className="min-h-screen bg-pro-bg pb-16">
+      <div style={{ width: '100%', maxWidth: '672px', margin: '0 auto', padding: '0 16px' }}>
+        <div style={{ paddingTop: '72px' }} className="sm:pt-6">
+
+          <header style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0 }}>
+                <p className="font-display text-2xl font-extrabold text-pro-ink">Vepay</p>
+                <p className="text-xs text-pro-muted">Pro Mode · Your subscription command center</p>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <CurrencySegmentToggle />
+              </div>
+            </div>
+          </header>
+
+          <div style={{ marginBottom: '16px' }}>
+            <BannerStack mode="PRO" />
           </div>
-          <CurrencySegmentToggle />
-        </header>
 
-        <div className="mb-4">
-          <BannerStack mode="PRO" />
-        </div>
-
-        <div className="grid gap-4">
-          {/* Cost overview */}
-          <SpendForecast mode="PRO" />
-          <BurnRateMeter />
-          <ApiCostTracker />
-
-          {/* Health + Calendar */}
-          <HealthScore />
-          <WeeklyPlanCard mode="PRO" />
-
-          {/* ROI — the honest mirror */}
-          <SoftwareROI />
-
-          {/* Premium tools */}
-          <PremiumOverlay />
-
-          {/* Trial management */}
-          <TrialCountdownCards />
-
-          {/* Group split */}
-          <SyndicateCard />
-
-          {/* Subscription list */}
-          <SaaSExpenseList />
-
-          {/* Graveyard */}
-          <SubscriptionGraveyard />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <SpendForecast mode="PRO" />
+            <BurnRateMeter />
+            <ApiCostTracker />
+            <HealthScore />
+            <WeeklyPlanCard mode="PRO" />
+            <SoftwareROI />
+            <PremiumOverlay />
+            <TrialCountdownCards />
+            <SyndicateCard />
+            <SaaSExpenseList />
+            <SubscriptionGraveyard />
+          </div>
         </div>
       </div>
     </div>

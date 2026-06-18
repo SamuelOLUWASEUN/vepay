@@ -1,15 +1,10 @@
 import { useClearSpend } from '../../context/ClearSpendContext';
 
-/**
- * Elegant segment controller for switching the Pro Dashboard's display
- * currency. Toggling this recalculates the Digital Burn Rate and every
- * mixed-currency entry into the selected baseline instantly.
- */
 export function CurrencySegmentToggle() {
   const { displayCurrency, setDisplayCurrency } = useClearSpend();
 
   return (
-    <div className="inline-flex w-fit rounded-full border border-pro-border bg-pro-surface-2 p-1 shrink-0">
+    <div style={{ display: 'inline-flex', borderRadius: '9999px', border: '1px solid var(--pro-border)', background: 'var(--pro-surface-2)', padding: '4px', flexShrink: 0 }}>
       {(['USD', 'NGN'] as const).map((currency) => {
         const active = displayCurrency === currency;
         return (
@@ -17,16 +12,20 @@ export function CurrencySegmentToggle() {
             key={currency}
             type="button"
             onClick={() => setDisplayCurrency(currency)}
-            className={[
-              'rounded-full px-3 py-1.5 text-xs font-semibold font-display transition-colors whitespace-nowrap',
-              active
-                ? 'bg-pro-violet text-white shadow'
-                : 'text-pro-muted hover:text-pro-ink',
-            ].join(' ')}
+            style={{
+              borderRadius: '9999px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              border: 'none',
+              cursor: 'pointer',
+              background: active ? '#7c5cff' : 'transparent',
+              color: active ? '#ffffff' : 'var(--pro-muted)',
+              transition: 'all 0.15s',
+            }}
           >
-            {/* Short on mobile, full label on desktop */}
-            <span className="sm:hidden">{currency === 'USD' ? '$ USD' : '₦ NGN'}</span>
-            <span className="hidden sm:inline">{currency === 'USD' ? 'View in USD ($)' : 'View in NGN (₦)'}</span>
+            {currency === 'USD' ? '$ USD' : '₦ NGN'}
           </button>
         );
       })}
