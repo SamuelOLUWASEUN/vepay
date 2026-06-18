@@ -18,8 +18,8 @@ interface ApiEntryInputProps {
 
 function ApiEntryInput({ amountStr, label, onAmountChange, onLabelChange, onSubmit, inputBg }: ApiEntryInputProps) {
   return (
-    <div className="flex gap-2">
-      <div className="relative shrink-0 w-28">
+    <div className="flex flex-col sm:flex-row gap-2">
+      <div className="relative w-full sm:w-28 sm:shrink-0">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-pro-muted text-sm font-mono">$</span>
         <input
           type="number"
@@ -39,13 +39,13 @@ function ApiEntryInput({ amountStr, label, onAmountChange, onLabelChange, onSubm
         onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); }}
         placeholder="OpenAI API call, Claude prompt…"
         maxLength={50}
-        className={['flex-1 rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors', inputBg].join(' ')}
+        className={['flex-1 w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors', inputBg].join(' ')}
       />
       <button
         type="button"
         onClick={onSubmit}
         disabled={!amountStr || parseFloat(amountStr) <= 0}
-        className="shrink-0 rounded-xl bg-pro-violet text-white px-4 py-2.5 text-sm font-semibold disabled:opacity-40 transition-colors hover:bg-pro-violet/90"
+        className="w-full sm:w-auto shrink-0 rounded-xl bg-pro-violet text-white px-4 py-2.5 text-sm font-semibold disabled:opacity-40 transition-colors hover:bg-pro-violet/90"
       >
         Log
       </button>

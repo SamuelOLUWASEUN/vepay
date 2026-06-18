@@ -32,19 +32,30 @@ function VepayApp() {
   // Lock body scroll when any full-screen overlay is open
   const anyOverlayOpen = savingsOpen || profileOpen || mobileSidebarOpen;
   useEffect(() => {
+    const scrollY = window.scrollY;
     if (anyOverlayOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.top = `-${scrollY}px`;
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
+      document.body.style.left = '0';
     } else {
+      const savedTop = document.body.style.top;
       document.body.style.overflow = '';
       document.body.style.position = '';
+      document.body.style.top = '';
       document.body.style.width = '';
+      document.body.style.left = '';
+      if (savedTop) {
+        window.scrollTo(0, parseInt(savedTop || '0') * -1);
+      }
     }
     return () => {
       document.body.style.overflow = '';
       document.body.style.position = '';
+      document.body.style.top = '';
       document.body.style.width = '';
+      document.body.style.left = '';
     };
   }, [anyOverlayOpen]);
 
@@ -79,7 +90,7 @@ function VepayApp() {
       />
 
       <main className={[
-        'flex-1 transition-[margin] duration-300 min-w-0 overflow-x-hidden w-full',
+        'flex-1 transition-[margin] duration-300 min-w-0 overflow-x-hidden',
         sidebarExpanded ? 'sm:ml-56' : 'sm:ml-16',
       ].join(' ')}>
         {currentMode === 'EXPRESS' ? <ExpressDashboard /> : <ProDashboard />}

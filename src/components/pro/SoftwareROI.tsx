@@ -111,7 +111,7 @@ export function SoftwareROI() {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 divide-x divide-pro-border border-b border-pro-border">
+      <div className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x divide-pro-border border-b border-pro-border divide-y sm:divide-y-0">
         <div className="px-4 py-3 text-center">
           <p className="font-mono font-black text-lg text-pro-red">{fmt(wastedNGN)}</p>
           <p className="text-[10px] text-pro-muted">Potential waste/mo</p>

@@ -99,7 +99,7 @@ export function SaaSExpenseList() {
               </p>
             </div>
 
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <div className="flex flex-col items-end gap-1.5 shrink-0 max-w-[120px]">
               <span className="font-mono text-sm font-semibold text-pro-ink">
                 {formatConverted(expense.amount, expense.currency, displayCurrency)}
               </span>

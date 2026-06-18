@@ -98,7 +98,7 @@ export function HealthScore() {
         <p className="font-display text-sm font-semibold text-pro-ink">Subscription Health</p>
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
         {/* Circular gauge — uses w-full with max-w so it scales on all screen sizes */}
         <div className="relative shrink-0 w-20 sm:w-22">
           <svg viewBox="0 0 88 88" className="w-full h-auto">
