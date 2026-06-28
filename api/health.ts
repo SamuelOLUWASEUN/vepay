@@ -23,12 +23,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const allConfigured = Object.values(checks).every(Boolean);
 
+  const baseUrl = process.env.NOMBA_BASE_URL ?? 'https://sandbox.nomba.com';
+  const environment = baseUrl.includes('sandbox') ? 'TEST (sandbox)' : 'LIVE (production)';
+
   return res.status(200).json({
     ok: true,
     service: 'Vepay API',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     env: checks,
+    environment,
+    nombaBaseUrl: baseUrl,
     ready: allConfigured,
     webhookUrl: 'https://vepay.vercel.app/api/nomba/webhook',
     endpoints: {

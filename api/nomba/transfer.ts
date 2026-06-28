@@ -16,7 +16,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getNombaToken } from './token';
-import { toKobo, logNomba, recallRef, rememberRef } from './_shared';
+import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared';
 
 interface TransferBody {
   recipientAccountNumber: string;
@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       platformFeeNGN,
     });
 
-    const response = await fetch('https://api.nomba.com/v1/transfers/bank', {
+    const response = await fetch(`${nombaBaseUrl()}/v1/transfers/bank`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

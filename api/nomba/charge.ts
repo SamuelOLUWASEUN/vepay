@@ -14,7 +14,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getNombaToken } from './token';
-import { toKobo, logNomba, recallRef, rememberRef } from './_shared';
+import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared';
 
 interface ChargeBody {
   expenseId: string;
@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     logNomba('info', 'charge.request', { merchantTxRef: idempotencyKey, expenseId, amountNGN });
 
-    const response = await fetch('https://api.nomba.com/v1/checkout/order', {
+    const response = await fetch(`${nombaBaseUrl()}/v1/checkout/order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

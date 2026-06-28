@@ -10,6 +10,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { nombaBaseUrl } from './_shared';
 
 // In-memory token cache (lives for the duration of the serverless function instance)
 let cachedToken: string | null = null;
@@ -29,7 +30,7 @@ export async function getNombaToken(): Promise<string> {
     throw new Error('Missing Nomba credentials in environment variables');
   }
 
-  const response = await fetch('https://api.nomba.com/v1/auth/token/issue', {
+  const response = await fetch(`${nombaBaseUrl()}/v1/auth/token/issue`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

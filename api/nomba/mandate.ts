@@ -25,6 +25,7 @@ import {
   rememberRef,
   recallRef,
   makeMerchantTxRef,
+  nombaBaseUrl,
 } from './_shared';
 
 type Cadence = 'daily' | 'weekly' | 'monthly';
@@ -98,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       logNomba('info', 'mandate.create.request', { merchantTxRef, expenseId, amountNGN, cadence, mode });
 
-      const response = await fetch('https://api.nomba.com/v1/mandates', {
+      const response = await fetch(`${nombaBaseUrl()}/v1/mandates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       const token = await getNombaToken();
-      const response = await fetch(`https://api.nomba.com/v1/mandates/${mandateId}`, {
+      const response = await fetch(`${nombaBaseUrl()}/v1/mandates/${mandateId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'accountId': accountId,
@@ -189,7 +190,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       const token = await getNombaToken();
-      const response = await fetch(`https://api.nomba.com/v1/mandates/${mandateId}/cancel`, {
+      const response = await fetch(`${nombaBaseUrl()}/v1/mandates/${mandateId}/cancel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

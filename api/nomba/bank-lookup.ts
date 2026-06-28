@@ -13,7 +13,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getNombaToken } from './token';
-import { logNomba } from './_shared';
+import { logNomba, nombaBaseUrl } from './_shared';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const params = new URLSearchParams({ accountNumber, bankCode });
     const response = await fetch(
-      `https://api.nomba.com/v1/transfers/bank/lookup?${params.toString()}`,
+      `${nombaBaseUrl()}/v1/transfers/bank/lookup?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

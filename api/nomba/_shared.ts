@@ -16,6 +16,18 @@ export function toKobo(naira: number): number {
   return Math.round(naira * 100);
 }
 
+/**
+ * Base URL for the Nomba API.
+ *
+ * Test credentials only authenticate against the sandbox host; live
+ * credentials only against the production host. We read the host from
+ * NOMBA_BASE_URL so switching environments is a config change, never a code
+ * change. Defaults to sandbox because that's what the hackathon uses.
+ */
+export function nombaBaseUrl(): string {
+  return process.env.NOMBA_BASE_URL ?? 'https://sandbox.nomba.com';
+}
+
 /** Inverse, for display when reading Nomba responses back. */
 export function fromKobo(kobo: number): number {
   return kobo / 100;

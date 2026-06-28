@@ -18,7 +18,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getNombaToken } from './token';
-import { fromKobo, logNomba } from './_shared';
+import { fromKobo, logNomba, nombaBaseUrl } from './_shared';
 
 interface LedgerEntry {
   reference: string;
@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const params = new URLSearchParams({ dateFrom: sinceDate, limit: '200' });
     const response = await fetch(
-      `https://api.nomba.com/v1/transactions?${params.toString()}`,
+      `${nombaBaseUrl()}/v1/transactions?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
