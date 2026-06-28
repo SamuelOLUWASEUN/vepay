@@ -11,6 +11,7 @@ import { TrialCountdownCards } from './TrialCountdownCards';
 import { SyndicateCard } from './SyndicateCard';
 import { SaaSExpenseList } from './SaaSExpenseList';
 import { SubscriptionGraveyard } from './SubscriptionGraveyard';
+import { ReconciliationPanel } from './ReconciliationPanel';
 import { useAuth } from '../../context/AuthContext';
 
 interface Props {
@@ -92,6 +93,7 @@ export function ProDashboard({ onOpenProfile }: Props) {
           {/* Burn rate sits directly above the subscription list — same story */}
           <BurnRateMeter />
           <SaaSExpenseList />
+          <ReconciliationPanel />
           <SubscriptionGraveyard />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { Pause, Play, RefreshCw } from 'lucide-react';
 import { useClearSpend } from '../../context/ClearSpendContext';
 import { formatCurrency, frequencyLabel } from '../../lib/currency';
+import { AutoPayControl } from '../shared/AutoPayControl';
 import type { Expense } from '../../types';
 
 function statusDot(status: Expense['status']) {
@@ -38,8 +39,9 @@ export function ExpressExpenseList() {
         return (
           <div
             key={expense.id}
-            className="flex items-center gap-3 rounded-2xl border border-express-border bg-express-surface px-4 py-3.5 shadow-sm"
+            className="rounded-2xl border border-express-border bg-express-surface shadow-sm"
           >
+            <div className="flex items-center gap-3 px-4 py-3.5">
             <span className="text-2xl">{expense.categoryIcon}</span>
 
             <div className="flex-1 min-w-0">
@@ -82,6 +84,14 @@ export function ExpressExpenseList() {
                 </button>
               )}
             </div>
+            </div>
+
+            {/* Auto-pay control — only for live obligations, not failed ones */}
+            {expense.status !== 'failed' && (
+              <div className="border-t border-express-border px-4 py-2.5">
+                <AutoPayControl expense={expense} tone="express" />
+              </div>
+            )}
           </div>
         );
       })}

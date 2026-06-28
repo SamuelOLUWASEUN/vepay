@@ -12,6 +12,13 @@ export type ExpenseType = 'tech' | 'local';
 
 export type ExpenseStatus = 'active' | 'paused' | 'failed';
 
+/** Lifecycle of a Nomba recurring-charge mandate attached to an expense. */
+export type MandateStatus =
+  | 'none'
+  | 'pending_authorization'
+  | 'active'
+  | 'cancelled';
+
 export type FailureReason = 'insufficient_funds' | 'expired_card';
 
 export interface SharedGroup {
@@ -34,6 +41,9 @@ export interface Expense {
   isTrial: boolean;
   trialDaysLeft?: number;
   sharedGroup?: SharedGroup;
+  /** Nomba mandate lifecycle. Defaults to 'none' (manual payments). */
+  mandateStatus?: MandateStatus;
+  mandateId?: string;
 }
 
 // ----------------------------------------------------------------------------

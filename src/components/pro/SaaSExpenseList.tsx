@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useClearSpend } from '../../context/ClearSpendContext';
 import { formatConverted, frequencyLabel } from '../../lib/currency';
+import { AutoPayControl } from '../shared/AutoPayControl';
 import type { Expense } from '../../types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -70,12 +71,13 @@ export function SaaSExpenseList() {
           <div
             key={expense.id}
             className={[
-              'flex items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-sm transition-colors',
+              'rounded-2xl border shadow-sm transition-colors',
               isFailed
                 ? 'border-pro-red/40 bg-pro-red-soft animate-pulse'
                 : 'border-pro-border bg-pro-surface',
             ].join(' ')}
           >
+            <div className="flex items-start gap-3 px-4 py-3.5">
             <div
               className={[
                 'rounded-xl p-2.5',
@@ -139,6 +141,14 @@ export function SaaSExpenseList() {
                 </div>
               )}
             </div>
+            </div>
+
+            {/* Auto-pay control — only for live subscriptions, not failed ones */}
+            {!isFailed && (
+              <div className="border-t border-pro-border px-4 py-2.5">
+                <AutoPayControl expense={expense} tone="pro" />
+              </div>
+            )}
           </div>
         );
       })}

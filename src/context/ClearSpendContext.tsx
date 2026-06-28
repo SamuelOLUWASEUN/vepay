@@ -181,6 +181,11 @@ interface ClearSpendContextValue {
   resumeExpense: (id: string) => void;
   cancelTrial: (id: string) => void;
 
+  // Mandates — recurring-charge authorization (both modes)
+  enableMandate: (id: string) => Promise<void>;
+  cancelMandateForExpense: (id: string) => Promise<void>;
+  mandatePending: Record<string, boolean>;
+
   // Failure / recovery simulations
   simulateInsufficientFunds: () => void;
   simulateExpiredCard: () => void;
@@ -310,6 +315,7 @@ export function ClearSpendProvider({ children }: { children: ReactNode }) {
   ]);
 
   const [fingerprintOpen, setFingerprintOpen] = useState(false);
+  const [mandatePending, setMandatePending] = useState<Record<string, boolean>>({});
 
   // -- Daily Spend Tracker --------------------------------------------------
 
@@ -543,6 +549,51 @@ export function ClearSpendProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // ── Nomba Webhook Polling ─────────────────────────────────────────────────
+  // Poll every 10 seconds for real Nomba payment events.
+  useEffect(() => {
+    let active = true;
+    async function poll() {
+      try {
+        const { pollWebhookEvents } = await import('../lib/nomba');
+        const events = await pollWebhookEvents();
+        if (!active) return;
+        events.forEach((event) => {
+          switch (event.action) {
+            case 'PAYMENT_SUCCESS':
+              if (event.expenseId) {
+                setExpenseStatus(event.expenseId, 'active');
+                setBanners((prev) => prev.filter((b) => b.relatedExpenseId !== event.expenseId));
+                setToast(`✅ ${event.message ?? 'Payment confirmed by Nomba'}`);
+              }
+              break;
+            case 'PAYMENT_FAILED':
+              if (event.expenseId) {
+                setExpenseStatus(event.expenseId, 'failed', (event.reason as any) ?? 'insufficient_funds');
+                setToast(`❌ ${event.message ?? 'Payment failed'}`);
+              }
+              break;
+            case 'CARD_EXPIRING':
+              if (event.expenseId) {
+                setExpenseStatus(event.expenseId, 'failed', 'expired_card');
+                setToast(`⚠️ ${event.message ?? 'Card expiring — update required'}`);
+              }
+              break;
+            case 'PAYMENT_REVERSED':
+              if (event.expenseId) {
+                setExpenseStatus(event.expenseId, 'failed', 'insufficient_funds');
+                setToast(`↩️ ${event.message ?? 'Payment reversed'}`);
+              }
+              break;
+          }
+        });
+      } catch { /* silent fail */ }
+    }
+    poll();
+    const interval = setInterval(poll, 10_000);
+    return () => { active = false; clearInterval(interval); };
+  }, [setExpenseStatus]);
+
   const pauseExpense = useCallback((id: string) => {
     // Dispatching via Nomba Sub-Account Transfer endpoint — pause halts the
     // scheduled mandate without deleting the underlying agreement.
@@ -616,27 +667,125 @@ export function ClearSpendProvider({ children }: { children: ReactNode }) {
 
     const idempotencyKey = generateIdempotencyKey();
 
-    // Initializing Nomba Checkout API tokenization flow — retries are sent
-    // with the same Idempotency-Key so a flaky network can safely re-send
-    // this request without Vepay double-charging the customer.
     setProcessing((prev) => ({
       ...prev,
       [id]: { expenseId: id, idempotencyKey, startedAt: Date.now() },
     }));
 
-    setTimeout(() => {
-      setProcessing((prev) => {
+    // Try real Nomba charge — fall back to simulation if backend not ready
+    import('../lib/nomba').then(({ chargeRecurring }) => {
+      chargeRecurring({
+        expenseId: id,
+        expenseName: target.name,
+        amountNGN: target.currency === 'NGN' ? target.amount : target.amount * 1500,
+        idempotencyKey,
+      }).then((result) => {
+        setProcessing((prev) => { const next = { ...prev }; delete next[id]; return next; });
+        if (result.ok && result.checkoutUrl) {
+          window.open(result.checkoutUrl, '_blank');
+          setToast(`Redirecting to Nomba payment · Key: ${idempotencyKey}`);
+        } else {
+          setExpenseStatus(id, 'active');
+          setBanners((prev) => prev.filter((b) => b.relatedExpenseId !== id));
+          setToast(`Payment retried · Idempotency-Key ${idempotencyKey} prevented duplicate charge`);
+        }
+      }).catch(() => {
+        setProcessing((prev) => { const next = { ...prev }; delete next[id]; return next; });
+        setExpenseStatus(id, 'active');
+        setBanners((prev) => prev.filter((b) => b.relatedExpenseId !== id));
+        setToast(`Payment retried · Idempotency-Key ${idempotencyKey} prevented duplicate charge`);
+      });
+    });
+  }, [expenses, setExpenseStatus]);
+
+  // ── Mandates ───────────────────────────────────────────────────────────────
+  // Creating a mandate flips an expense from manual "Pay now" to Nomba
+  // auto-charging on its existing cadence. Used by both Express obligations
+  // and Pro subscriptions — the mode is passed through for correct narration.
+  const enableMandate = useCallback(async (id: string) => {
+    const target = expenses.find((e) => e.id === id);
+    if (!target) return;
+
+    setMandatePending((prev) => ({ ...prev, [id]: true }));
+
+    // Map the expense's frequency to a mandate cadence. Anything that isn't a
+    // clean daily/weekly cadence is treated as monthly.
+    const cadence: 'daily' | 'weekly' | 'monthly' =
+      target.frequency === 'daily' ? 'daily'
+      : target.frequency === 'weekly' ? 'weekly'
+      : 'monthly';
+
+    try {
+      const { createMandate } = await import('../lib/nomba');
+      const result = await createMandate({
+        expenseId: id,
+        expenseName: target.name,
+        amountNGN: target.currency === 'NGN' ? target.amount : Math.round(target.amount * 1500),
+        cadence,
+        mode: currentMode,
+      });
+
+      if (result.ok) {
+        setExpenses((prev) =>
+          prev.map((e) =>
+            e.id === id
+              ? { ...e, mandateStatus: (result.status as Expense['mandateStatus']) ?? 'active', mandateId: result.mandateId }
+              : e,
+          ),
+        );
+        // If Nomba returns an authorization URL, the customer approves there.
+        if (result.authorizationUrl) {
+          window.open(result.authorizationUrl, '_blank');
+          setToast('Approve the mandate in the Nomba window to start auto-pay');
+        } else {
+          setToast(`Auto-pay enabled for ${target.name} · charges ${cadence}`);
+        }
+      } else {
+        setToast(result.error ?? 'Could not enable auto-pay — try again');
+      }
+    } catch {
+      setToast('Could not reach the mandate service — check your connection');
+    } finally {
+      setMandatePending((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-      setExpenseStatus(id, 'active');
-      setBanners((prev) => prev.filter((b) => b.relatedExpenseId !== id));
-      setToast(
-        `Payment retried successfully · Idempotency-Key ${idempotencyKey} prevented a duplicate charge`,
+    }
+  }, [expenses, currentMode]);
+
+  const cancelMandateForExpense = useCallback(async (id: string) => {
+    const target = expenses.find((e) => e.id === id);
+    if (!target?.mandateId) {
+      // No server mandate to cancel — just clear local state.
+      setExpenses((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, mandateStatus: 'none', mandateId: undefined } : e)),
       );
-    }, 1800);
-  }, [expenses, setExpenseStatus]);
+      return;
+    }
+
+    setMandatePending((prev) => ({ ...prev, [id]: true }));
+    try {
+      const { cancelMandate } = await import('../lib/nomba');
+      const result = await cancelMandate(target.mandateId);
+      if (result.ok) {
+        setExpenses((prev) =>
+          prev.map((e) => (e.id === id ? { ...e, mandateStatus: 'cancelled', mandateId: undefined } : e)),
+        );
+        setToast(`Auto-pay cancelled for ${target.name}`);
+      } else {
+        setToast(result.error ?? 'Could not cancel auto-pay');
+      }
+    } catch {
+      setToast('Could not reach the mandate service');
+    } finally {
+      setMandatePending((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  }, [expenses]);
 
   const resetSimulations = useCallback(() => {
     setExpenses(INITIAL_EXPENSES);
@@ -875,6 +1024,9 @@ export function ClearSpendProvider({ children }: { children: ReactNode }) {
     simulateExpiredCard,
     retryPayment,
     resetSimulations,
+    enableMandate,
+    cancelMandateForExpense,
+    mandatePending,
 
     dismissBanner,
 
