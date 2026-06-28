@@ -741,7 +741,12 @@ export function ClearSpendProvider({ children }: { children: ReactNode }) {
           setToast(`Auto-pay enabled for ${target.name} · charges ${cadence}`);
         }
       } else {
-        setToast(result.error ?? 'Could not enable auto-pay — try again');
+        // A raw server error (e.g. credentials not yet configured) shouldn't
+        // leak technical text to the user — show a clear, plain message.
+        const friendly = result.error && result.error.length < 60
+          ? result.error
+          : 'Auto-pay isn’t available yet — payment service is still being set up';
+        setToast(friendly);
       }
     } catch {
       setToast('Could not reach the mandate service — check your connection');

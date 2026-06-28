@@ -1,10 +1,59 @@
 /**
- * Nomba API client — frontend side
+ * Nomba API client — frontend side.
  *
- * All calls go through our Vercel serverless API routes (/api/nomba/*)
- * which hold the credentials server-side. The frontend never touches
- * Nomba directly and never sees the Client ID or Private Key.
+ * Every call goes through our Vercel serverless routes (/api/nomba/*), which
+ * hold the credentials server-side. The frontend never sees the Client ID or
+ * Private Key.
+ *
+ * All responses are parsed through `safeJson`, which tolerates a non-JSON body
+ * (for example a plain-text platform error before credentials are configured)
+ * and turns it into a normal `{ ok: false, error }` result instead of throwing.
+ * That keeps a backend hiccup from ever crashing the UI.
  */
+
+interface ApiError {
+  ok: false;
+  error: string;
+}
+
+/**
+ * Parse a fetch Response defensively. If the body isn't valid JSON we surface
+ * the raw text as an error rather than letting JSON.parse throw.
+ */
+async function safeJson<T>(res: Response): Promise<T | ApiError> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const snippet = text.trim().slice(0, 120) || `Request failed (${res.status})`;
+    return { ok: false, error: snippet };
+  }
+}
+
+/** Shared POST helper — JSON in, safely-parsed JSON out. */
+async function postJson<T>(url: string, body: unknown): Promise<T | ApiError> {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await safeJson<T>(res);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
+async function getJson<T>(url: string): Promise<T | ApiError> {
+  try {
+    const res = await fetch(url);
+    return await safeJson<T>(res);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
+// ── Charge ───────────────────────────────────────────────────────────────────
 
 export interface ChargeResult {
   ok: boolean;
@@ -14,6 +63,18 @@ export interface ChargeResult {
   error?: string;
 }
 
+export async function chargeRecurring(params: {
+  expenseId: string;
+  expenseName: string;
+  amountNGN: number;
+  idempotencyKey: string;
+  customerEmail?: string;
+}): Promise<ChargeResult> {
+  return postJson<ChargeResult>('/api/nomba/charge', params) as Promise<ChargeResult>;
+}
+
+// ── Transfer ─────────────────────────────────────────────────────────────────
+
 export interface TransferResult {
   ok: boolean;
   transferId?: string;
@@ -22,6 +83,20 @@ export interface TransferResult {
   status?: string;
   error?: string;
 }
+
+export async function initiateTransfer(params: {
+  recipientAccountNumber: string;
+  recipientBankCode: string;
+  recipientName: string;
+  amountNGN: number;
+  reference: string;
+  narration: string;
+  transferType: 'ajo_payout' | 'syndicate_split';
+}): Promise<TransferResult> {
+  return postJson<TransferResult>('/api/nomba/transfer', params) as Promise<TransferResult>;
+}
+
+// ── Webhook polling ──────────────────────────────────────────────────────────
 
 export interface WebhookAction {
   action: 'PAYMENT_SUCCESS' | 'PAYMENT_FAILED' | 'PAYMENT_REVERSED' | 'CARD_EXPIRING';
@@ -33,82 +108,18 @@ export interface WebhookAction {
   cardLast4?: string;
 }
 
-/**
- * Initiate a charge for a recurring payment.
- * Called when user taps "Pay now" on a failed expense.
- */
-export async function chargeRecurring(params: {
-  expenseId: string;
-  expenseName: string;
-  amountNGN: number;
-  idempotencyKey: string;
-  customerEmail?: string;
-}): Promise<ChargeResult> {
-  try {
-    const res = await fetch('/api/nomba/charge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    const data = await res.json();
-    return data;
-  } catch (err: any) {
-    return { ok: false, error: err.message };
-  }
-}
-
-/**
- * Initiate a transfer (Ajo payout or Syndicate split).
- */
-export async function initiateTransfer(params: {
-  recipientAccountNumber: string;
-  recipientBankCode: string;
-  recipientName: string;
-  amountNGN: number;
-  reference: string;
-  narration: string;
-  transferType: 'ajo_payout' | 'syndicate_split';
-}): Promise<TransferResult> {
-  try {
-    const res = await fetch('/api/nomba/transfer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    const data = await res.json();
-    return data;
-  } catch (err: any) {
-    return { ok: false, error: err.message };
-  }
-}
-
-/**
- * Poll for pending webhook events.
- * The frontend calls this every 10 seconds to pick up real-time
- * payment status updates that Nomba sent to our webhook endpoint.
- */
 export async function pollWebhookEvents(): Promise<WebhookAction[]> {
-  try {
-    const res = await fetch('/api/nomba/webhook');
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.events ?? [];
-  } catch {
-    return [];
-  }
+  const data = await getJson<{ ok: boolean; events?: WebhookAction[] }>('/api/nomba/webhook');
+  if ('events' in data && Array.isArray(data.events)) return data.events;
+  return [];
 }
 
-/**
- * Check if the backend is healthy and credentials are configured.
- */
+// ── Health ───────────────────────────────────────────────────────────────────
+
 export async function checkHealth(): Promise<{ ready: boolean; env: Record<string, boolean> }> {
-  try {
-    const res = await fetch('/api/health');
-    const data = await res.json();
-    return { ready: data.ready, env: data.env };
-  } catch {
-    return { ready: false, env: {} };
-  }
+  const data = await getJson<{ ready?: boolean; env?: Record<string, boolean> }>('/api/health');
+  if ('ready' in data) return { ready: Boolean(data.ready), env: data.env ?? {} };
+  return { ready: false, env: {} };
 }
 
 // ── Mandates ─────────────────────────────────────────────────────────────────
@@ -122,11 +133,6 @@ export interface MandateResult {
   error?: string;
 }
 
-/**
- * Create a recurring-charge mandate for an expense. This is what turns a
- * manual recurring item into an auto-charged subscription. Works for both
- * Express obligations and Pro subscriptions.
- */
 export async function createMandate(params: {
   expenseId: string;
   expenseName: string;
@@ -135,16 +141,7 @@ export async function createMandate(params: {
   mode: 'EXPRESS' | 'PRO';
   customerEmail?: string;
 }): Promise<MandateResult> {
-  try {
-    const res = await fetch('/api/nomba/mandate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    return await res.json();
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
-  }
+  return postJson<MandateResult>('/api/nomba/mandate', params) as Promise<MandateResult>;
 }
 
 export async function cancelMandate(mandateId: string): Promise<MandateResult> {
@@ -152,7 +149,7 @@ export async function cancelMandate(mandateId: string): Promise<MandateResult> {
     const res = await fetch(`/api/nomba/mandate?id=${encodeURIComponent(mandateId)}`, {
       method: 'DELETE',
     });
-    return await res.json();
+    return (await safeJson<MandateResult>(res)) as MandateResult;
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
   }
@@ -166,21 +163,12 @@ export interface BankLookupResult {
   error?: string;
 }
 
-/**
- * Resolve an account number + bank code to the holder's name. Call this and
- * show the returned name for confirmation before any Ajo payout transfer.
- */
 export async function lookupBankAccount(
   accountNumber: string,
   bankCode: string,
 ): Promise<BankLookupResult> {
-  try {
-    const params = new URLSearchParams({ accountNumber, bankCode });
-    const res = await fetch(`/api/nomba/bank-lookup?${params.toString()}`);
-    return await res.json();
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
-  }
+  const params = new URLSearchParams({ accountNumber, bankCode });
+  return getJson<BankLookupResult>(`/api/nomba/bank-lookup?${params.toString()}`) as Promise<BankLookupResult>;
 }
 
 // ── Reconciliation ───────────────────────────────────────────────────────────
@@ -198,20 +186,8 @@ export interface ReconcileResult {
   error?: string;
 }
 
-/**
- * Compare the local ledger against Nomba's transaction record and report drift.
- */
 export async function reconcileLedger(
   ledger: { reference: string; amountNGN: number }[],
 ): Promise<ReconcileResult> {
-  try {
-    const res = await fetch('/api/nomba/reconcile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ledger }),
-    });
-    return await res.json();
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
-  }
+  return postJson<ReconcileResult>('/api/nomba/reconcile', { ledger }) as Promise<ReconcileResult>;
 }

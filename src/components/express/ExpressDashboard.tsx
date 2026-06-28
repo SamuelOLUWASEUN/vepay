@@ -27,13 +27,8 @@ export function ExpressDashboard({ onOpenProfile }: Props) {
         background: 'var(--express-bg)',
         borderBottom: '1px solid var(--express-border)',
         boxShadow: '0 1px 8px rgba(0,0,0,0.06)',
-        // Extend behind the fixed hamburger button on mobile
-        paddingLeft: '60px',
-        paddingRight: '16px',
-        paddingTop: '12px',
-        paddingBottom: '12px',
       }}
-      className="sm:px-6 sm:py-3"
+      className="vepay-sticky-header"
       >
         <div style={{ maxWidth: '560px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           <div style={{ minWidth: 0 }}>

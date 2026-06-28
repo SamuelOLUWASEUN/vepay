@@ -226,3 +226,17 @@
   --pro-violet-soft: #ede9ff;
   --pro-red-soft: #fff0f1;
 }
+
+/* ── Sticky dashboard header padding ──────────────────────────────────────────
+   On mobile the fixed hamburger sits top-left, so the header reserves 60px on
+   the left to clear it. On desktop (>=640px) the sidebar rail occupies that
+   space instead, so the header uses even padding and the reserved gap is
+   removed — preventing a phantom second "menu" gap next to the rail. */
+.vepay-sticky-header {
+  padding: 12px 16px 12px 60px;
+}
+@media (min-width: 640px) {
+  .vepay-sticky-header {
+    padding: 12px 24px;
+  }
+}
