@@ -7,12 +7,15 @@
  * means a retried request is processed exactly once. Amounts arrive in naira
  * and are converted to kobo here.
  *
+ * The checkout path is environment-aware (see checkoutPath): sandbox serves it
+ * under /sandbox/checkout/, production under /v1/checkout/.
+ *
  * Docs: https://developer.nomba.com/nomba-api-reference/online-checkout
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getNombaToken } from './token.js';
-import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared.js';
+import { toKobo, logNomba, recallRef, rememberRef, checkoutPath } from './_shared.js';
 
 interface ChargeBody {
   expenseId: string;
@@ -65,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     logNomba('info', 'charge.request', { merchantTxRef: idempotencyKey, expenseId, amountNGN });
 
-    const response = await fetch(`${nombaBaseUrl()}/v1/checkout/order`, {
+    const response = await fetch(checkoutPath('order'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

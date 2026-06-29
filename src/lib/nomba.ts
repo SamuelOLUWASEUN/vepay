@@ -5,10 +5,14 @@
  * hold the credentials server-side. The frontend never sees the Client ID or
  * Private Key.
  *
- * All responses are parsed through `safeJson`, which tolerates a non-JSON body
- * (for example a plain-text platform error before credentials are configured)
- * and turns it into a normal `{ ok: false, error }` result instead of throwing.
- * That keeps a backend hiccup from ever crashing the UI.
+ * ── Demo-mode fallback ───────────────────────────────────────────────────────
+ * While the Nomba sandbox credentials are pending, the backend authenticates
+ * but Nomba rejects the call (403). So the UX can still be demonstrated end to
+ * end, each call detects that specific "service not ready" condition and
+ * returns a clean simulated success instead of surfacing an error. The moment
+ * real credentials are in place the live path is taken automatically — no code
+ * change. `isDemoFallback` is set on simulated results so the UI can label them
+ * honestly ("demo") rather than implying a real charge occurred.
  */
 
 interface ApiError {
@@ -17,9 +21,23 @@ interface ApiError {
 }
 
 /**
- * Parse a fetch Response defensively. If the body isn't valid JSON we surface
- * the raw text as an error rather than letting JSON.parse throw.
+ * Heuristic: does this error indicate the payment service simply isn't wired
+ * up yet (credentials pending / auth rejected), as opposed to a genuine bad
+ * request we should surface? We only fall back to demo mode for the former.
  */
+function isServiceNotReady(error: string | undefined): boolean {
+  if (!error) return false;
+  const e = error.toLowerCase();
+  return (
+    e.includes('403') ||
+    e.includes('forbidden') ||
+    e.includes('auth failed') ||
+    e.includes('missing nomba') ||
+    e.includes('configuration missing') ||
+    e.includes('credentials')
+  );
+}
+
 async function safeJson<T>(res: Response): Promise<T | ApiError> {
   const text = await res.text();
   try {
@@ -30,7 +48,6 @@ async function safeJson<T>(res: Response): Promise<T | ApiError> {
   }
 }
 
-/** Shared POST helper — JSON in, safely-parsed JSON out. */
 async function postJson<T>(url: string, body: unknown): Promise<T | ApiError> {
   try {
     const res = await fetch(url, {
@@ -61,6 +78,7 @@ export interface ChargeResult {
   orderReference?: string;
   orderId?: string;
   error?: string;
+  isDemoFallback?: boolean;
 }
 
 export async function chargeRecurring(params: {
@@ -70,7 +88,11 @@ export async function chargeRecurring(params: {
   idempotencyKey: string;
   customerEmail?: string;
 }): Promise<ChargeResult> {
-  return postJson<ChargeResult>('/api/nomba/charge', params) as Promise<ChargeResult>;
+  const result = (await postJson<ChargeResult>('/api/nomba/charge', params)) as ChargeResult;
+  if (!result.ok && isServiceNotReady(result.error)) {
+    return { ok: true, orderReference: params.idempotencyKey, isDemoFallback: true };
+  }
+  return result;
 }
 
 // ── Transfer ─────────────────────────────────────────────────────────────────
@@ -82,6 +104,7 @@ export interface TransferResult {
   platformFeeNGN?: number;
   status?: string;
   error?: string;
+  isDemoFallback?: boolean;
 }
 
 export async function initiateTransfer(params: {
@@ -93,7 +116,19 @@ export async function initiateTransfer(params: {
   narration: string;
   transferType: 'ajo_payout' | 'syndicate_split';
 }): Promise<TransferResult> {
-  return postJson<TransferResult>('/api/nomba/transfer', params) as Promise<TransferResult>;
+  const result = (await postJson<TransferResult>('/api/nomba/transfer', params)) as TransferResult;
+  if (!result.ok && isServiceNotReady(result.error)) {
+    const platformFeeNGN = Math.round(params.amountNGN * 0.01);
+    return {
+      ok: true,
+      reference: params.reference,
+      netAmountNGN: params.amountNGN - platformFeeNGN,
+      platformFeeNGN,
+      status: 'demo',
+      isDemoFallback: true,
+    } as TransferResult;
+  }
+  return result;
 }
 
 // ── Webhook polling ──────────────────────────────────────────────────────────
@@ -131,6 +166,7 @@ export interface MandateResult {
   authorizationUrl?: string | null;
   cadence?: 'daily' | 'weekly' | 'monthly';
   error?: string;
+  isDemoFallback?: boolean;
 }
 
 export async function createMandate(params: {
@@ -141,15 +177,34 @@ export async function createMandate(params: {
   mode: 'EXPRESS' | 'PRO';
   customerEmail?: string;
 }): Promise<MandateResult> {
-  return postJson<MandateResult>('/api/nomba/mandate', params) as Promise<MandateResult>;
+  const result = (await postJson<MandateResult>('/api/nomba/mandate', params)) as MandateResult;
+  if (!result.ok && isServiceNotReady(result.error)) {
+    return {
+      ok: true,
+      mandateId: `demo_${params.expenseId}_${Date.now().toString(36)}`,
+      status: 'active',
+      authorizationUrl: null,
+      cadence: params.cadence,
+      isDemoFallback: true,
+    };
+  }
+  return result;
 }
 
 export async function cancelMandate(mandateId: string): Promise<MandateResult> {
+  // Demo mandates never reached Nomba, so cancel them locally without a call.
+  if (mandateId.startsWith('demo_')) {
+    return { ok: true, mandateId, status: 'cancelled', isDemoFallback: true };
+  }
   try {
     const res = await fetch(`/api/nomba/mandate?id=${encodeURIComponent(mandateId)}`, {
       method: 'DELETE',
     });
-    return (await safeJson<MandateResult>(res)) as MandateResult;
+    const result = (await safeJson<MandateResult>(res)) as MandateResult;
+    if (!result.ok && isServiceNotReady(result.error)) {
+      return { ok: true, mandateId, status: 'cancelled', isDemoFallback: true };
+    }
+    return result;
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
   }

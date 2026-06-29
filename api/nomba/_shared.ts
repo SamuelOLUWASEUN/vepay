@@ -1,14 +1,9 @@
 /**
  * Shared backend utilities for all Nomba endpoints.
  *
- * Centralises four concerns the hackathon checklist grades:
- *   1. Money — a single kobo conversion so amounts are never sent in naira.
- *   2. Base URL — test credentials only authenticate against the sandbox host;
- *      live only against production. Read from NOMBA_BASE_URL so switching is a
- *      config change, never code.
- *   3. Structured logging — one JSON line per call, tagged with merchantTxRef.
- *   4. Idempotency — a process-level store of seen references so a retried
- *      webhook or a double-tapped action never produces two writes.
+ * Centralises the cross-cutting concerns the endpoints all need: money
+ * conversion, the base URL (which differs between sandbox and production),
+ * structured logging, and a small idempotency store.
  */
 
 /** Smallest-unit conversion. Nomba expects integer kobo, never naira floats. */
@@ -31,8 +26,20 @@ export function nombaBaseUrl(): string {
 }
 
 /**
- * Structured log line. One JSON object per call so logs are machine-parseable
- * in the Vercel dashboard. merchantTxRef ties frontend → charge → webhook.
+ * Checkout path differs by environment. Sandbox serves checkout under
+ * /sandbox/checkout/, production under /v1/checkout/. Deriving it from the
+ * base URL keeps the two from drifting apart — change the environment and the
+ * path follows.
+ */
+export function checkoutPath(suffix: string): string {
+  const isSandbox = nombaBaseUrl().includes('sandbox');
+  const prefix = isSandbox ? '/sandbox/checkout' : '/v1/checkout';
+  return `${nombaBaseUrl()}${prefix}/${suffix}`;
+}
+
+/**
+ * Structured log line. One JSON object per call so logs are grep-able in the
+ * Vercel dashboard by merchantTxRef across the whole request lifecycle.
  */
 export function logNomba(
   level: 'info' | 'warn' | 'error',
@@ -54,8 +61,8 @@ export function logNomba(
 /**
  * Process-level idempotency store. Serverless instances are reused across
  * invocations, so this catches the common duplicate cases (webhook retries,
- * fast double taps) without external infrastructure. A production deploy would
- * back this with Redis or a Postgres unique constraint.
+ * double taps) without external infrastructure. Production would back this
+ * with Redis or a unique DB constraint.
  */
 const seenRefs = new Map<string, { at: number; result: unknown }>();
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
