@@ -77,6 +77,29 @@
   }
 }
 
+/* Mobile: bottom sheet with a gap beneath it */
+.vepay-quicklog-backdrop {
+  justify-content: flex-end;
+}
+.vepay-quicklog-card {
+  border-radius: 24px 24px 0 0;
+  border-bottom: none;
+  margin-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* Desktop: centered dialog */
+@media (min-width: 640px) {
+  .vepay-quicklog-backdrop {
+    justify-content: center;
+    align-items: center;
+  }
+  .vepay-quicklog-card {
+    border-radius: 24px;
+    border-bottom: 1px solid var(--express-border);
+    margin-bottom: 0;
+  }
+}
+
 @layer utilities {
   /* Traffic light ring pulse */
   @keyframes pulse-ring {

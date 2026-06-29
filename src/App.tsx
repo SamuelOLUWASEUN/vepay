@@ -34,17 +34,31 @@ function VepayApp() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentMode]);
 
-  // Lock body scroll when any full-screen overlay is open
-  const anyOverlayOpen = savingsOpen || profileOpen || mobileSidebarOpen;
+  // ── Background scroll lock — single source of truth ─────────────────────────
+  // When any overlay (sidebar drawer or a modal) is open, the page behind it
+  // must not scroll. Locking `body` alone is unreliable on mobile because the
+  // scroll often lives on the <html> element / viewport, which is exactly why
+  // the page leaked behind the drawer before. So we lock BOTH html and body.
+  //
+  // We use `overflow: hidden` (not `position: fixed`) deliberately: position
+  // fixed resets the scroll position to the top, and the desired behavior is
+  // for the page to stay exactly where it was when the overlay closes.
+  const anyOverlayOpen =
+    savingsOpen || profileOpen || mobileSidebarOpen || settingsOpen || devToolsOpen || Boolean(inviteModal?.open) || fingerprintOpen;
+
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
     if (anyOverlayOpen) {
-      // Simple overflow hidden — no position:fixed which freezes Android scroll position
-      document.body.style.overflow = 'hidden';
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = '';
+      html.style.overflow = '';
+      body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = '';
+      html.style.overflow = '';
+      body.style.overflow = '';
     };
   }, [anyOverlayOpen]);
 

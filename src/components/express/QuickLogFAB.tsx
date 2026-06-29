@@ -138,9 +138,15 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
   }
 
   return (
-    // Full screen backdrop
+    // Full screen backdrop.
+    // Positioning is handled by the `.vepay-quicklog-backdrop` class:
+    //   mobile  → content sits near the bottom but lifted off the edge
+    //   desktop → content centered like a normal dialog
+    // (A media query is required for this, which inline styles can't express —
+    //  hence the class. The blur/dim look is unchanged.)
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="vepay-quicklog-backdrop"
       style={{
         position: 'fixed', inset: 0, zIndex: 55,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -148,8 +154,8 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
         backdropFilter: 'blur(4px)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
-        // Move modal up by keyboard height
+        // Move modal up by keyboard height (mobile). On desktop the keyboard
+        // never appears so this stays 0 and the centering is unaffected.
         paddingBottom: `${modalBottom}px`,
         transition: 'padding-bottom 0.1s ease',
       }}
@@ -157,17 +163,15 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
       {/* Modal card */}
       <div
         onClick={(e) => e.stopPropagation()}
+        className="vepay-quicklog-card"
         style={{
           width: '100%',
           maxWidth: '440px',
-          margin: '0 auto',
+          marginLeft: 'auto',
+          marginRight: 'auto',
           background: 'var(--express-surface)',
-          borderRadius: '24px 24px 0 0',
           border: '1px solid var(--express-border)',
-          borderBottom: 'none',
           overflow: 'hidden',
-          // Safe area bottom padding for iPhone notch
-          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         {/* Header */}

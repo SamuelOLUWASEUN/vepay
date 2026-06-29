@@ -68,15 +68,10 @@ export function Sidebar({
     return () => window.removeEventListener('keydown', onKey);
   }, [mobileOpen, onCloseMobile]);
 
-  // Lock body scroll when mobile sidebar is open
-  useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileOpen]);
+  // Note: background scroll-lock for the open drawer is handled centrally in
+  // App.tsx (it locks both <html> and <body>). We intentionally do NOT lock
+  // scroll here too — two effects fighting over the same style was the cause of
+  // the page leaking behind the drawer on mobile.
 
   function switchTo(mode: 'EXPRESS' | 'PRO') {
     setMode(mode);
