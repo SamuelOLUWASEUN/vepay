@@ -7,6 +7,33 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Vepay — Subscriptions & Recurring Money, Unified</title>
+
+    <!--
+      Theme bootstrap — runs BEFORE React and before first paint.
+      It reads the saved theme (same key + logic as ThemeContext) and sets
+      data-theme on <html> immediately, so the page paints in the correct
+      theme from the very first frame. Without this, the page renders in the
+      default light theme for a moment before React mounts and switches it —
+      that gap is the flash. This script mirrors getInitialTheme() exactly, so
+      the two never disagree.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('vepay.theme');
+          var theme =
+            saved === 'dark' || saved === 'light'
+              ? saved
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

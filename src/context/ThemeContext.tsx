@@ -38,12 +38,37 @@ function getInitialTheme(): Theme {
   }
 }
 
+/**
+ * Apply the theme with NO flicker.
+ *
+ * Many elements carry Tailwind's `transition-colors`, so when the CSS variables
+ * swap they ease at slightly different times — that stagger is the flash. To
+ * avoid it we add a class that disables ALL transitions for one frame, swap the
+ * theme so everything repaints together, then remove the class on the next
+ * frame so normal hover/focus transitions resume. The result is a crisp,
+ * instant theme change with no flicker.
+ */
+function applyThemeNoFlash(theme: Theme) {
+  const root = document.documentElement;
+  root.classList.add('vepay-theme-switching');
+  root.setAttribute('data-theme', theme);
+  // Force a reflow so the disabled-transition state is committed before we
+  // remove the guard, then drop it on the next frame.
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  window.getComputedStyle(root).getPropertyValue('opacity');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.classList.remove('vepay-theme-switching');
+    });
+  });
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   // Apply data-theme to <html> so CSS vars swap globally
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    applyThemeNoFlash(theme);
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {

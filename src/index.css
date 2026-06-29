@@ -272,3 +272,10 @@
     display: none;
   }
 }
+
+.vepay-theme-switching * ,
+.vepay-theme-switching *::before,
+.vepay-theme-switching *::after {
+  transition: none !important;
+  animation: none !important;
+}
