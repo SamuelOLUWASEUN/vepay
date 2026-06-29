@@ -116,6 +116,22 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
     };
   }, [open]);
 
+  // ── Background scroll lock ──────────────────────────────────────────────────
+  // This modal owns its open state internally, so the central lock in App.tsx
+  // never sees it. Lock here the same robust way: both <html> and <body>, with
+  // overflow:hidden (not position:fixed) so the page stays where it was on close.
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const body = document.body;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = '';
+      body.style.overflow = '';
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const pct = Math.min(todaySpendNGN / dailyBudgetNGN, 1);
