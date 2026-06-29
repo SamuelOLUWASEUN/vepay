@@ -49,7 +49,6 @@ export function Sidebar({
   mobileOpen,
   onToggleExpanded,
   onCloseMobile,
-  onOpenMobile,
   onOpenDevTools,
   onOpenSettings,
   onOpenSavings,
