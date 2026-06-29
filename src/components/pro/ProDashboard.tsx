@@ -12,13 +12,15 @@ import { SyndicateCard } from './SyndicateCard';
 import { SaaSExpenseList } from './SaaSExpenseList';
 import { SubscriptionGraveyard } from './SubscriptionGraveyard';
 import { ReconciliationPanel } from './ReconciliationPanel';
+import { MobileMenuButton } from '../shared/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   onOpenProfile: () => void;
+  onOpenMobile: () => void;
 }
 
-export function ProDashboard({ onOpenProfile }: Props) {
+export function ProDashboard({ onOpenProfile, onOpenMobile }: Props) {
   const { user } = useAuth();
 
   return (
@@ -36,9 +38,12 @@ export function ProDashboard({ onOpenProfile }: Props) {
       className="vepay-sticky-header"
       >
         <div style={{ maxWidth: '672px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-          <div style={{ minWidth: 0 }}>
-            <p className="font-display font-extrabold text-pro-ink" style={{ fontSize: '20px', margin: 0, lineHeight: 1.2 }}>Vepay</p>
-            <p style={{ fontSize: '11px', color: 'var(--pro-muted)', margin: 0 }}>Pro Mode · Subscription OS</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <MobileMenuButton onClick={onOpenMobile} tone="pro" />
+            <div style={{ minWidth: 0 }}>
+              <p className="font-display font-extrabold text-pro-ink" style={{ fontSize: '20px', margin: 0, lineHeight: 1.2 }}>Vepay</p>
+              <p style={{ fontSize: '11px', color: 'var(--pro-muted)', margin: 0 }}>Pro Mode · Subscription OS</p>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>

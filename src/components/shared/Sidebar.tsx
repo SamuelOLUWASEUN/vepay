@@ -39,9 +39,10 @@ interface SidebarProps {
  *   Click the menu icon to expand to full labels (224px).
  *   Main content margin is controlled by parent based on `expanded` state.
  *
- * Mobile: hidden by default. Hamburger in header opens an overlay panel
- *   that slides in from the LEFT (not bottom). Tapping outside closes it.
- *   The main content does NOT shift on mobile — sidebar overlays it.
+ * Mobile: hidden by default. The hamburger that opens it now lives INSIDE each
+ *   dashboard header (see MobileMenuButton at the bottom of this file) so it
+ *   scrolls with the header instead of floating over content. Tapping outside
+ *   closes the overlay panel, which slides in from the LEFT.
  */
 export function Sidebar({
   expanded,
@@ -288,41 +289,9 @@ export function Sidebar({
         {content}
       </aside>
 
-      {/* ── Mobile: hamburger — sits in sticky header zone ─────────── */}
-      <button
-        type="button"
-        onClick={onOpenMobile}
-        className="sm:hidden"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          zIndex: 50,
-          width: '56px',
-          height: '58px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          color: isExpress ? 'var(--express-ink)' : 'var(--pro-ink)',
-        }}
-        aria-label="Open navigation"
-      >
-        <div style={{
-          width: '38px', height: '38px',
-          borderRadius: '10px',
-          border: `1px solid ${isExpress ? 'var(--express-border)' : 'var(--pro-border)'}`,
-          background: isExpress ? 'var(--express-bg)' : 'var(--pro-bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-        }}>
-          <Menu style={{ width: '18px', height: '18px' }} />
-        </div>
-      </button>
+      {/* The mobile hamburger now lives inside each dashboard header
+          (see MobileMenuButton below) so it scrolls with the header
+          instead of floating over the page content. */}
 
       {/* ── Mobile: backdrop + left-slide panel ─────────────────────────── */}
       {mobileOpen && (
@@ -474,6 +443,45 @@ export function Sidebar({
         </div>
       )}
     </>
+  );
+}
+
+// ── Mobile menu button — placed inside dashboard headers ──────────────────────
+// Rendered inline in the sticky header so it scrolls with it (no position:fixed,
+// so it never floats over content). Visibility is controlled by the
+// `.vepay-mobile-menu-btn` CSS class (a media query), NOT an inline `display`,
+// so nothing overrides the hide on desktop where the rail's own toggle is used.
+export function MobileMenuButton({ onClick, tone }: { onClick: () => void; tone: 'express' | 'pro' }) {
+  const isExpress = tone === 'express';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="vepay-mobile-menu-btn"
+      style={{
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        flexShrink: 0,
+        alignItems: 'center',
+      }}
+      aria-label="Open navigation"
+    >
+      <div style={{
+        width: '38px', height: '38px',
+        borderRadius: '10px',
+        border: `1px solid ${isExpress ? 'var(--express-border)' : 'var(--pro-border)'}`,
+        background: isExpress ? 'var(--express-bg)' : 'var(--pro-bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        color: isExpress ? 'var(--express-ink)' : 'var(--pro-ink)',
+      }}>
+        <Menu style={{ width: '18px', height: '18px' }} />
+      </div>
+    </button>
   );
 }
 

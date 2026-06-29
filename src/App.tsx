@@ -83,8 +83,14 @@ function VepayApp() {
       <main style={{ flex: 1, minWidth: 0, width: '100%' }}
         className={sidebarExpanded ? 'sm:ml-56' : 'sm:ml-16'}>
         {currentMode === 'EXPRESS'
-          ? <ExpressDashboard onOpenProfile={() => setProfileOpen(true)} />
-          : <ProDashboard onOpenProfile={() => setProfileOpen(true)} />}
+          ? <ExpressDashboard
+              onOpenProfile={() => setProfileOpen(true)}
+              onOpenMobile={() => setMobileSidebarOpen(true)}
+            />
+          : <ProDashboard
+              onOpenProfile={() => setProfileOpen(true)}
+              onOpenMobile={() => setMobileSidebarOpen(true)}
+            />}
       </main>
 
       {/* Global overlays */}

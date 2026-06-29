@@ -7,13 +7,15 @@ import { VoiceWaveform } from './VoiceWaveform';
 import { ExpressExpenseList } from './ExpressExpenseList';
 import { DailySpendTracker } from './DailySpendTracker';
 import { AjoGroupHub } from './AjoGroupHub';
+import { MobileMenuButton } from '../shared/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   onOpenProfile: () => void;
+  onOpenMobile: () => void;
 }
 
-export function ExpressDashboard({ onOpenProfile }: Props) {
+export function ExpressDashboard({ onOpenProfile, onOpenMobile }: Props) {
   const { user } = useAuth();
 
   return (
@@ -31,9 +33,12 @@ export function ExpressDashboard({ onOpenProfile }: Props) {
       className="vepay-sticky-header"
       >
         <div style={{ maxWidth: '560px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-          <div style={{ minWidth: 0 }}>
-            <p className="font-display font-extrabold text-express-ink" style={{ fontSize: '20px', margin: 0, lineHeight: 1.2 }}>Vepay</p>
-            <p style={{ fontSize: '11px', color: 'var(--express-muted)', margin: 0 }}>Express Mode · Daily money</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <MobileMenuButton onClick={onOpenMobile} tone="express" />
+            <div style={{ minWidth: 0 }}>
+              <p className="font-display font-extrabold text-express-ink" style={{ fontSize: '20px', margin: 0, lineHeight: 1.2 }}>Vepay</p>
+              <p style={{ fontSize: '11px', color: 'var(--express-muted)', margin: 0 }}>Express Mode · Daily money</p>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
