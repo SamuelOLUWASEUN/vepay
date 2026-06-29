@@ -2,23 +2,17 @@
  * Nomba Reconciliation
  * POST /api/nomba/reconcile
  *
- * Compares the app's local ledger against Nomba's source-of-truth
- * /transactions list and reports any drift. Three mismatch classes are
- * surfaced so the UI can act on each:
- *   - missing_in_nomba : ledger has it, Nomba doesn't (local over-count)
- *   - missing_in_ledger : Nomba has it, ledger doesn't (un-recorded charge)
- *   - amount_mismatch  : both have the ref but amounts differ
+ * Compares the app's local ledger against Nomba's /transactions list and
+ * reports drift in three classes: missing_in_nomba, missing_in_ledger, and
+ * amount_mismatch. Runs on demand from the Pro dashboard (the ledger of record
+ * lives in the browser, so the panel is where that data exists to send).
  *
- * In production this would run nightly on a cron schedule (Vercel Cron). For
- * the hackathon it's an on-demand endpoint the Pro dashboard calls so judges
- * can see live reconciliation. The cron wiring is documented in vercel.json.
- *
- * Docs: https://developer.nomba.com/transactions
+ * Docs: https://developer.nomba.com/nomba-api-reference/transactions
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getNombaToken } from './token';
-import { fromKobo, logNomba, nombaBaseUrl } from './_shared';
+import { getNombaToken } from './token.js';
+import { fromKobo, logNomba, nombaBaseUrl } from './_shared.js';
 
 interface LedgerEntry {
   reference: string;
@@ -27,12 +21,12 @@ interface LedgerEntry {
 
 interface ReconcileBody {
   ledger: LedgerEntry[];
-  since?: string; // ISO date, defaults to last 30 days
+  since?: string;
 }
 
 interface NombaTxn {
   reference: string;
-  amount: number; // kobo
+  amount: number;
   status: string;
 }
 
@@ -56,31 +50,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const token = await getNombaToken();
-
     const params = new URLSearchParams({ dateFrom: sinceDate, limit: '200' });
     const response = await fetch(
       `${nombaBaseUrl()}/v1/transactions?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'accountId': accountId,
-        },
-      },
+      { headers: { 'Authorization': `Bearer ${token}`, 'accountId': accountId } },
     );
 
     const result = await response.json();
 
     if (!response.ok) {
       logNomba('error', 'reconcile.fetch_failed', { status: response.status });
-      return res.status(response.status).json({ ok: false, error: result.message ?? 'Could not fetch transactions' });
+      return res.status(response.status).json({ ok: false, error: result.description ?? 'Could not fetch transactions' });
     }
 
-    const nombaTxns: NombaTxn[] = (result.data?.transactions ?? result.transactions ?? []) as NombaTxn[];
+    const nombaTxns: NombaTxn[] = (result.data?.transactions ?? result.data ?? []) as NombaTxn[];
 
-    // Index both sides by reference for O(n) comparison.
     const nombaByRef = new Map<string, NombaTxn>();
     nombaTxns.forEach((t) => nombaByRef.set(t.reference, t));
-
     const ledgerByRef = new Map<string, LedgerEntry>();
     ledger.forEach((l) => ledgerByRef.set(l.reference, l));
 
@@ -100,7 +86,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
     }
-
     for (const txn of nombaTxns) {
       if (!ledgerByRef.has(txn.reference)) {
         missingInLedger.push({ reference: txn.reference, amountNGN: fromKobo(txn.amount) });
@@ -108,16 +93,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const inSync =
-      missingInNomba.length === 0 &&
-      missingInLedger.length === 0 &&
-      amountMismatch.length === 0;
+      missingInNomba.length === 0 && missingInLedger.length === 0 && amountMismatch.length === 0;
 
     logNomba('info', 'reconcile.complete', {
       ledgerCount: ledger.length,
       nombaCount: nombaTxns.length,
-      missingInNomba: missingInNomba.length,
-      missingInLedger: missingInLedger.length,
-      amountMismatch: amountMismatch.length,
       inSync,
     });
 
@@ -126,10 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       inSync,
       checkedAt: new Date().toISOString(),
       since: sinceDate,
-      summary: {
-        ledgerCount: ledger.length,
-        nombaCount: nombaTxns.length,
-      },
+      summary: { ledgerCount: ledger.length, nombaCount: nombaTxns.length },
       mismatches: { missingInNomba, missingInLedger, amountMismatch },
     });
   } catch (err) {

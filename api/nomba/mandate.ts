@@ -4,21 +4,16 @@
  * GET    /api/nomba/mandate?id=    fetch a mandate's current status
  * DELETE /api/nomba/mandate?id=    cancel an active mandate
  *
- * A Mandate is the authorization that turns a one-off charge into a true
- * subscription: the customer approves "charge me X on this cadence" once, and
- * Nomba pulls funds automatically thereafter. Both Vepay modes use the same
- * mechanism:
- *   - Express: thrift contributions, shop rent, power, levies
- *   - Pro:     every SaaS / API subscription
+ * A Mandate turns a one-off charge into a true subscription: the customer
+ * approves "charge me X on this cadence" once, and Nomba pulls funds
+ * automatically thereafter. Both Vepay modes use the same mechanism — Express
+ * obligations (thrift, rent, power, levies) and Pro subscriptions.
  *
- * The frontend treats a mandate as the lifecycle behind each recurring item,
- * so creating one is what flips an expense from "manual pay" to "auto".
- *
- * Docs: https://developer.nomba.com/mandates
+ * Docs: https://developer.nomba.com/nomba-api-reference
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getNombaToken } from './token';
+import { getNombaToken } from './token.js';
 import {
   toKobo,
   logNomba,
@@ -26,7 +21,7 @@ import {
   recallRef,
   makeMerchantTxRef,
   nombaBaseUrl,
-} from './_shared';
+} from './_shared.js';
 
 type Cadence = 'daily' | 'weekly' | 'monthly';
 
@@ -37,10 +32,9 @@ interface CreateMandateBody {
   cadence: Cadence;
   mode: 'EXPRESS' | 'PRO';
   customerEmail?: string;
-  startDate?: string; // ISO date; defaults to today
+  startDate?: string;
 }
 
-/** Map Vepay cadence to the frequency Nomba's mandate API expects. */
 function toNombaFrequency(cadence: Cadence): string {
   switch (cadence) {
     case 'daily': return 'DAILY';
@@ -57,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: 'Nomba account configuration missing' });
   }
 
-  // ── Create a mandate ─────────────────────────────────────────────────────
+  // ── Create ───────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const body = req.body as CreateMandateBody;
     const { expenseId, expenseName, amountNGN, cadence, mode, customerEmail, startDate } = body;
@@ -71,10 +65,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const merchantTxRef = makeMerchantTxRef(`mandate_${mode.toLowerCase()}`);
 
-    // Idempotency: if this exact ref was already created, return the first result.
     const prior = recallRef(merchantTxRef);
     if (prior.seen) {
-      logNomba('info', 'mandate.create.idempotent_hit', { merchantTxRef, expenseId });
       return res.status(200).json(prior.result);
     }
 
@@ -87,14 +79,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         currency: 'NGN',
         frequency: toNombaFrequency(cadence),
         startDate: startDate ?? new Date().toISOString().slice(0, 10),
-        sourceAccountId: subAccountId,
-        customer: {
-          email: customerEmail ?? 'user@vepay.app',
-          reference: expenseId,
-        },
+        accountId: subAccountId,
+        customerEmail: customerEmail ?? 'user@vepay.app',
+        customerReference: expenseId,
         narration: `Vepay ${mode === 'EXPRESS' ? 'recurring obligation' : 'subscription'}: ${expenseName}`,
         callbackUrl: 'https://vepay.vercel.app/api/nomba/webhook',
-        metaData: { expenseId, expenseName, mode, source: 'vepay' },
       };
 
       logNomba('info', 'mandate.create.request', { merchantTxRef, expenseId, amountNGN, cadence, mode });
@@ -116,22 +105,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         logNomba('error', 'mandate.create.failed', {
           merchantTxRef,
           status: response.status,
-          nombaCode: result.code,
-          message: result.message,
+          message: result.description ?? result.message,
         });
         return res.status(response.status).json({
           ok: false,
-          error: result.message ?? 'Mandate creation failed',
-          nomba_code: result.code,
+          error: result.description ?? result.message ?? 'Mandate creation failed',
         });
       }
 
       const ok = {
         ok: true,
         merchantTxRef,
-        mandateId: result.data?.mandateId ?? result.mandateId,
+        mandateId: result.data?.mandateId ?? result.data?.id ?? null,
         status: result.data?.status ?? 'pending_authorization',
-        authorizationUrl: result.data?.authorizationUrl ?? result.authorizationUrl ?? null,
+        authorizationUrl: result.data?.authorizationUrl ?? null,
         cadence,
       };
 
@@ -146,69 +133,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // ── Fetch mandate status ─────────────────────────────────────────────────
+  // ── Fetch ────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const mandateId = String(req.query.id ?? '');
     if (!mandateId) {
       return res.status(400).json({ ok: false, error: 'Missing mandate id' });
     }
-
     try {
       const token = await getNombaToken();
       const response = await fetch(`${nombaBaseUrl()}/v1/mandates/${mandateId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'accountId': accountId,
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'accountId': accountId },
       });
       const result = await response.json();
-
       if (!response.ok) {
-        logNomba('warn', 'mandate.fetch.failed', { mandateId, status: response.status });
-        return res.status(response.status).json({ ok: false, error: result.message ?? 'Fetch failed' });
+        return res.status(response.status).json({ ok: false, error: result.description ?? 'Fetch failed' });
       }
-
       return res.status(200).json({
         ok: true,
         mandateId,
-        status: result.data?.status ?? result.status,
+        status: result.data?.status ?? null,
         nextChargeDate: result.data?.nextChargeDate ?? null,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      logNomba('error', 'mandate.fetch.exception', { mandateId, message });
       return res.status(500).json({ ok: false, error: message });
     }
   }
 
-  // ── Cancel a mandate ─────────────────────────────────────────────────────
+  // ── Cancel ───────────────────────────────────────────────────────────────
   if (req.method === 'DELETE') {
     const mandateId = String(req.query.id ?? '');
     if (!mandateId) {
       return res.status(400).json({ ok: false, error: 'Missing mandate id' });
     }
-
     try {
       const token = await getNombaToken();
       const response = await fetch(`${nombaBaseUrl()}/v1/mandates/${mandateId}/cancel`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'accountId': accountId,
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'accountId': accountId },
       });
       const result = await response.json();
-
       if (!response.ok) {
-        logNomba('warn', 'mandate.cancel.failed', { mandateId, status: response.status });
-        return res.status(response.status).json({ ok: false, error: result.message ?? 'Cancel failed' });
+        return res.status(response.status).json({ ok: false, error: result.description ?? 'Cancel failed' });
       }
-
       logNomba('info', 'mandate.cancel.success', { mandateId });
       return res.status(200).json({ ok: true, mandateId, status: 'cancelled' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      logNomba('error', 'mandate.cancel.exception', { mandateId, message });
       return res.status(500).json({ ok: false, error: message });
     }
   }

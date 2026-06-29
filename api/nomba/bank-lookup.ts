@@ -3,17 +3,15 @@
  * GET /api/nomba/bank-lookup?accountNumber=...&bankCode=...
  *
  * Resolves an account number + bank code to the registered account holder
- * name. The Ajo payout flow calls this BEFORE initiating a transfer so the
- * coordinator can confirm they're paying the right person — funds sent to a
- * wrong number are effectively unrecoverable, so this is a correctness
- * safeguard the checklist grades explicitly.
+ * name. The Ajo payout flow calls this BEFORE a transfer so the coordinator
+ * can confirm they're paying the right person.
  *
- * Docs: https://developer.nomba.com/transfers (bank lookup)
+ * Docs: https://developer.nomba.com/nomba-api-reference/transfers
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getNombaToken } from './token';
-import { logNomba, nombaBaseUrl } from './_shared';
+import { getNombaToken } from './token.js';
+import { logNomba, nombaBaseUrl } from './_shared.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -37,16 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const token = await getNombaToken();
-
     const params = new URLSearchParams({ accountNumber, bankCode });
     const response = await fetch(
       `${nombaBaseUrl()}/v1/transfers/bank/lookup?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'accountId': accountId,
-        },
-      },
+      { headers: { 'Authorization': `Bearer ${token}`, 'accountId': accountId } },
     );
 
     const result = await response.json();
@@ -55,19 +47,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logNomba('warn', 'bank_lookup.failed', { accountNumber, bankCode, status: response.status });
       return res.status(response.status).json({
         ok: false,
-        error: result.message ?? 'Account lookup failed — check the number and bank',
+        error: result.description ?? result.message ?? 'Account lookup failed',
       });
     }
 
-    const accountName = result.data?.accountName ?? result.accountName ?? null;
+    const accountName = result.data?.accountName ?? null;
     logNomba('info', 'bank_lookup.success', { accountNumber, bankCode, resolved: Boolean(accountName) });
-
-    return res.status(200).json({
-      ok: true,
-      accountNumber,
-      bankCode,
-      accountName,
-    });
+    return res.status(200).json({ ok: true, accountNumber, bankCode, accountName });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logNomba('error', 'bank_lookup.exception', { message });

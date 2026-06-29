@@ -2,8 +2,8 @@
  * Health Check
  * GET /api/health
  *
- * Simple endpoint to confirm the Vercel serverless backend is running
- * and environment variables are configured correctly.
+ * Confirms the backend is running and which Nomba environment + credentials
+ * are configured. Judges can hit this to see a green status.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -22,7 +22,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   const allConfigured = Object.values(checks).every(Boolean);
-
   const baseUrl = process.env.NOMBA_BASE_URL ?? 'https://sandbox.nomba.com';
   const environment = baseUrl.includes('sandbox') ? 'TEST (sandbox)' : 'LIVE (production)';
 

@@ -3,18 +3,16 @@
  * POST /api/nomba/charge
  *
  * Initiates a one-off charge for a recurring item — used when a user taps
- * "Pay now" to recover a failed payment, or to take the first payment before a
- * mandate is authorized. The Idempotency-Key (merchantTxRef) means a retried
- * request from a flaky network is processed exactly once.
+ * "Pay now" to recover a failed payment. The Idempotency-Key (merchantTxRef)
+ * means a retried request is processed exactly once. Amounts arrive in naira
+ * and are converted to kobo here.
  *
- * Amounts arrive in naira and are converted to kobo here, never before.
- *
- * Docs: https://developer.nomba.com/checkout
+ * Docs: https://developer.nomba.com/nomba-api-reference/online-checkout
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getNombaToken } from './token';
-import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared';
+import { getNombaToken } from './token.js';
+import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared.js';
 
 interface ChargeBody {
   expenseId: string;
@@ -44,7 +42,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: 'Nomba account configuration missing' });
   }
 
-  // Idempotency: replay the original result for a key we've already charged.
   const prior = recallRef(`charge:${idempotencyKey}`);
   if (prior.seen) {
     logNomba('info', 'charge.idempotent_hit', { merchantTxRef: idempotencyKey, expenseId });
@@ -55,17 +52,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = await getNombaToken();
 
     const payload = {
-      orderReference: idempotencyKey,
-      customerId: customerEmail ?? 'vepay-user',
-      callbackUrl: 'https://vepay.vercel.app/api/nomba/webhook',
-      customer: { email: customerEmail ?? 'user@vepay.app', name: 'Vepay User' },
       order: {
+        orderReference: idempotencyKey,
+        customerId: customerEmail ?? 'vepay-user',
+        callbackUrl: 'https://vepay.vercel.app/api/nomba/webhook',
+        customerEmail: customerEmail ?? 'user@vepay.app',
         amount: toKobo(amountNGN),
         currency: 'NGN',
-        description: `Vepay recurring: ${expenseName}`,
-        reference: idempotencyKey,
+        accountId: subAccountId,
       },
-      metaData: { expenseId, expenseName, source: 'vepay_recurring', subAccountId },
     };
 
     logNomba('info', 'charge.request', { merchantTxRef: idempotencyKey, expenseId, amountNGN });
@@ -87,21 +82,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logNomba('error', 'charge.failed', {
         merchantTxRef: idempotencyKey,
         status: response.status,
-        nombaCode: result.code,
-        message: result.message,
+        message: result.description ?? result.message,
       });
       return res.status(response.status).json({
         ok: false,
-        error: result.message ?? 'Charge failed',
-        nomba_code: result.code,
+        error: result.description ?? result.message ?? 'Charge failed',
       });
     }
 
     const ok = {
       ok: true,
-      checkoutUrl: result.data?.checkoutLink ?? result.checkoutLink ?? null,
+      checkoutUrl: result.data?.checkoutLink ?? null,
       orderReference: idempotencyKey,
-      orderId: result.data?.orderId ?? result.orderId ?? null,
+      orderId: result.data?.orderId ?? null,
     };
 
     rememberRef(`charge:${idempotencyKey}`, ok);

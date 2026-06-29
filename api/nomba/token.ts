@@ -1,23 +1,21 @@
 /**
  * Nomba OAuth2 Token
+ * GET /api/nomba/token   (health check that also verifies credentials)
  *
- * Nomba uses client credentials flow. We exchange our Client ID + Private Key
- * for a short-lived access token, then use that token on every subsequent
- * API call. Tokens are cached for their lifetime to avoid hitting the auth
- * endpoint on every request.
+ * Exchanges Client ID + Private Key for a short-lived access token via the
+ * client-credentials grant, caching it for its lifetime. Every other endpoint
+ * calls getNombaToken() before talking to Nomba.
  *
- * Docs: https://developer.nomba.com/authentication
+ * Docs: https://developer.nomba.com/docs/getting-started/authentication
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { nombaBaseUrl } from './_shared';
+import { nombaBaseUrl } from './_shared.js';
 
-// In-memory token cache (lives for the duration of the serverless function instance)
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
 export async function getNombaToken(): Promise<string> {
-  // Return cached token if still valid (with 60s buffer)
   if (cachedToken && Date.now() < tokenExpiresAt - 60_000) {
     return cachedToken;
   }
@@ -49,37 +47,32 @@ export async function getNombaToken(): Promise<string> {
   }
 
   const data = await response.json();
+  const token = data.data?.access_token ?? data.access_token;
+  const expiresIn = data.data?.expiresAt ?? data.expires_in ?? 1800;
 
-  // Nomba returns access_token + expires_in (seconds)
-  cachedToken = data.access_token;
-  tokenExpiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
-
-  if (!cachedToken) {
+  if (!token) {
     throw new Error('Nomba returned no access token');
   }
 
-  return cachedToken;
+  cachedToken = token;
+  tokenExpiresAt = Date.now() + (typeof expiresIn === 'number' ? expiresIn : 1800) * 1000;
+  return token;
 }
 
-/**
- * Health check — GET /api/nomba/token
- * Lets you verify credentials are wired correctly without triggering a charge.
- */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
-
   try {
     const token = await getNombaToken();
-    // Return masked token so you can confirm it works without exposing it
     return res.status(200).json({
       ok: true,
       token_preview: `${token.slice(0, 8)}...${token.slice(-4)}`,
       expires_at: new Date(tokenExpiresAt).toISOString(),
     });
-  } catch (err: any) {
-    console.error('[Nomba Token Error]', err.message);
-    return res.status(500).json({ ok: false, error: err.message });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[Nomba Token Error]', message);
+    return res.status(500).json({ ok: false, error: message });
   }
 }

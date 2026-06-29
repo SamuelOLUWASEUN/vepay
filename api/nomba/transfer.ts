@@ -2,21 +2,17 @@
  * Nomba Sub-Account Transfer
  * POST /api/nomba/transfer
  *
- * Moves funds out of the Vepay sub-account to a recipient bank account. Two
- * flows use it:
- *   - ajo_payout      : pay the pot to the member whose turn it is
- *   - syndicate_split : route a collected split share
+ * Moves funds out of the Vepay sub-account to a recipient bank account for Ajo
+ * payouts and Syndicate splits. Vepay's 1% platform fee is computed here. The
+ * caller should verify the recipient via /api/nomba/bank-lookup first; the
+ * reference doubles as the idempotency key.
  *
- * Vepay's 1% platform fee is computed and retained here. The caller is
- * expected to have verified the recipient via /api/nomba/bank-lookup first;
- * the reference doubles as the idempotency key so a retry can't double-pay.
- *
- * Docs: https://developer.nomba.com/transfers
+ * Docs: https://developer.nomba.com/nomba-api-reference/transfers
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getNombaToken } from './token';
-import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared';
+import { getNombaToken } from './token.js';
+import { toKobo, logNomba, recallRef, rememberRef, nombaBaseUrl } from './_shared.js';
 
 interface TransferBody {
   recipientAccountNumber: string;
@@ -56,14 +52,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, error: 'Nomba account configuration missing' });
   }
 
-  // Idempotency: replay the original result for a reference already sent.
   const prior = recallRef(`transfer:${reference}`);
   if (prior.seen) {
     logNomba('info', 'transfer.idempotent_hit', { merchantTxRef: reference });
     return res.status(200).json(prior.result);
   }
 
-  // 1% platform fee accrues to the Vepay sub-account; recipient gets the rest.
   const platformFeeNGN = Math.round(amountNGN * 0.01);
   const netAmountNGN = amountNGN - platformFeeNGN;
 
@@ -75,13 +69,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       currency: 'NGN',
       reference,
       narration: narration || `Vepay ${transferType === 'ajo_payout' ? 'Ajo Payout' : 'Syndicate Split'}`,
-      destinationAccount: {
-        accountNumber: recipientAccountNumber,
-        bankCode: recipientBankCode,
-        accountName: recipientName,
-      },
-      sourceAccountId: subAccountId,
-      metaData: { transferType, platformFeeNGN, originalAmountNGN: amountNGN, source: 'vepay' },
+      accountNumber: recipientAccountNumber,
+      bankCode: recipientBankCode,
+      accountName: recipientName,
+      senderName: 'Vepay',
     };
 
     logNomba('info', 'transfer.request', {
@@ -109,19 +100,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logNomba('error', 'transfer.failed', {
         merchantTxRef: reference,
         status: response.status,
-        nombaCode: result.code,
-        message: result.message,
+        message: result.description ?? result.message,
       });
       return res.status(response.status).json({
         ok: false,
-        error: result.message ?? 'Transfer failed',
-        nomba_code: result.code,
+        error: result.description ?? result.message ?? 'Transfer failed',
       });
     }
 
     const ok = {
       ok: true,
-      transferId: result.data?.transferId ?? result.transferId ?? null,
+      transferId: result.data?.transferId ?? result.data?.id ?? null,
       reference,
       netAmountNGN,
       platformFeeNGN,
