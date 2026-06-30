@@ -98,14 +98,8 @@ function VepayApp() {
   if (!isAuthenticated) return <SignInPage />;
 
   return (
-    /* Root shell — NOTE: intentionally NOT display:flex.
-       The sidebar is position:fixed (out of flow) and <main> clears it with a
-       left margin, so flex was redundant. More importantly, a flex root broke
-       position:sticky on the dashboard header on iOS WebKit (Safari + iOS
-       Chrome): the sticky element wouldn't claim its slot on first paint, so
-       the header was missing until a scroll forced a reflow. Plain block flow
-       here lets sticky compute correctly from the first frame. */
-    <div style={{ width: '100%', minHeight: '100vh' }}>
+    /* Root shell */
+    <div style={{ width: '100%', display: 'flex', minHeight: '100vh' }}>
       <Sidebar
         expanded={sidebarExpanded}
         mobileOpen={mobileSidebarOpen}
@@ -118,9 +112,8 @@ function VepayApp() {
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      {/* Main — NO overflow:hidden here, it breaks position:sticky.
-          The left margin clears the fixed sidebar on desktop. */}
-      <main style={{ minWidth: 0, width: '100%' }}
+      {/* Main — NO overflow:hidden here, it breaks position:sticky */}
+      <main style={{ flex: 1, minWidth: 0, width: '100%' }}
         className={sidebarExpanded ? 'sm:ml-56' : 'sm:ml-16'}>
         {currentMode === 'EXPRESS'
           ? <ExpressDashboard
