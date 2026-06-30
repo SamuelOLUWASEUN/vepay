@@ -54,22 +54,22 @@
     -webkit-overflow-scrolling: auto;
   }
 
-  body {
-    margin: 0;
-    font-family: var(--font-sans);
-    overflow-x: clip;
-    width: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-  }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  overflow-x: clip;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 100vh;       
+  min-height: 100dvh;      
+}
 
   #root {
-    width: 100%;
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-  }
+  width: 100%;
+  min-height: 100vh;       
+  min-height: 100dvh;      
+}
 
   /* Safari: font-size 16px on all inputs prevents auto-zoom */
   input, textarea, select {
