@@ -29,19 +29,11 @@ function VepayApp() {
   const [savingsOpen, setSavingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Scroll to top whenever the user switches between Express and Pro mode
+  
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentMode]);
 
-  // ── iOS WebKit sticky-header kick ───────────────────────────────────────────
-  // On iOS (Safari AND Chrome, which both use WebKit), `position: sticky` at
-  // top:0 sometimes doesn't engage on the very first paint — the header's slot
-  // isn't held in layout flow, so the content slides up into its place. The
-  // header only "drops in" once a scroll forces a reflow. To fix it we trigger
-  // one harmless reflow right after mount: nudge the scroll by a single pixel
-  // and back on the next frames. The user never sees the movement, but WebKit
-  // recalculates and the sticky header takes its correct position immediately.
   useEffect(() => {
     const id = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -53,15 +45,7 @@ function VepayApp() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // ── Background scroll lock — single source of truth ─────────────────────────
-  // When any overlay (sidebar drawer or a modal) is open, the page behind it
-  // must not scroll. Locking `body` alone is unreliable on mobile because the
-  // scroll often lives on the <html> element / viewport, which is exactly why
-  // the page leaked behind the drawer before. So we lock BOTH html and body.
-  //
-  // We use `overflow: hidden` (not `position: fixed`) deliberately: position
-  // fixed resets the scroll position to the top, and the desired behavior is
-  // for the page to stay exactly where it was when the overlay closes.
+
   const anyOverlayOpen =
     savingsOpen || profileOpen || mobileSidebarOpen || settingsOpen || devToolsOpen || Boolean(inviteModal?.open) || fingerprintOpen;
 
