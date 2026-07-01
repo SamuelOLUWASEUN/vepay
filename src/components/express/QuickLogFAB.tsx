@@ -85,10 +85,15 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
   const [label, setLabel] = useState('');
   const [logged, setLogged] = useState(false);
   const [modalBottom, setModalBottom] = useState(0);
+  // Live height of the visible viewport (shrinks when the keyboard opens). We
+  // cap the card to this so it can never be taller than what's on screen.
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 
-  // ── Keyboard avoidance using visualViewport API ───────────────────────────
-  // This is the ONLY reliable way to handle keyboard on iOS Safari + Android
+  // ── Keyboard avoidance + live viewport height using visualViewport API ──────
+  // This is the ONLY reliable way to handle keyboard on iOS Safari + Android.
+  // We track two things from the same event: how far to lift the card off the
+  // bottom (keyboard height) and the current visible height (to cap the card).
   useEffect(() => {
     if (!open) return;
 
@@ -96,11 +101,15 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
       if (window.visualViewport) {
         const viewport = window.visualViewport;
         const windowHeight = window.innerHeight;
-        const viewportHeight = viewport.height;
-        const keyboardHeight = windowHeight - viewportHeight - viewport.offsetTop;
+        const vpHeight = viewport.height;
+        const keyboardHeight = windowHeight - vpHeight - viewport.offsetTop;
         setModalBottom(Math.max(0, keyboardHeight));
+        setViewportHeight(vpHeight);
       }
     }
+
+    // Seed immediately so the cap is correct on first open, before any resize.
+    handleViewportResize();
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportResize);
@@ -113,6 +122,7 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
         window.visualViewport.removeEventListener('scroll', handleViewportResize);
       }
       setModalBottom(0);
+      setViewportHeight(null);
     };
   }, [open]);
 
@@ -139,6 +149,11 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
   const isWarn = pct >= 0.7 && !isOver;
   const barColor = isOver ? '#e5484d' : isWarn ? '#f5a623' : '#0f9d58';
   const totalColor = isOver ? '#e5484d' : isWarn ? '#f5a623' : 'var(--express-ink)';
+
+  // Cap the card so it's never taller than the visible screen. We subtract a
+  // little (24px) so it never quite touches the edges. When visualViewport
+  // isn't available yet we fall back to the CSS `dvh` cap on the card class.
+  const maxCardHeight = viewportHeight ? `${viewportHeight - 24}px` : undefined;
 
   function handleLog() {
     const val = parseFloat(amount);
@@ -176,7 +191,12 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
         transition: 'padding-bottom 0.1s ease',
       }}
     >
-      {/* Modal card */}
+      {/* Modal card.
+          It's a vertical flex column capped to the visible viewport height, so
+          it can never be taller than the screen. The header is fixed; the body
+          scrolls internally only if the content doesn't fit (e.g. when the
+          keyboard shrinks the space). On a normal tall screen nothing scrolls —
+          it looks exactly as before. */}
       <div
         onClick={(e) => e.stopPropagation()}
         className="vepay-quicklog-card"
@@ -188,10 +208,14 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
           background: 'var(--express-surface)',
           border: '1px solid var(--express-border)',
           overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: maxCardHeight,
         }}
       >
-        {/* Header */}
+        {/* Header — fixed, never scrolls away */}
         <div style={{
+          flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '16px 20px', borderBottom: '1px solid var(--express-border)',
           background: 'var(--express-bg)',
@@ -210,61 +234,72 @@ function QuickLogModal({ open, onClose }: QuickLogModalProps) {
           </button>
         </div>
 
-        {/* Today's total */}
-        <div style={{ padding: '16px 20px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--express-muted)', fontWeight: 600 }}>Today so far</span>
-            <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '18px', color: totalColor }}>
-              {formatCurrency(todaySpendNGN, 'NGN')}
-            </span>
+        {/* Scrollable body — takes remaining height, scrolls only if needed */}
+        <div style={{
+          flex: '1 1 auto',
+          minHeight: 0,
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          // Safe area padding lives here so the last element clears the iPhone
+          // home indicator even while scrolling.
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}>
+          {/* Today's total */}
+          <div style={{ padding: '16px 20px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--express-muted)', fontWeight: 600 }}>Today so far</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '18px', color: totalColor }}>
+                {formatCurrency(todaySpendNGN, 'NGN')}
+              </span>
+            </div>
+            <div style={{ height: '6px', borderRadius: '9999px', background: 'var(--express-border)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: '9999px', background: barColor, width: `${Math.min(pct * 100, 100)}%`, transition: 'width 0.5s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--express-muted)' }}>
+                {isOver ? `₦${Math.abs(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} over` : `₦${(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} left`}
+              </span>
+              <span style={{ fontSize: '10px', color: 'var(--express-muted)' }}>
+                Budget: {formatCurrency(dailyBudgetNGN, 'NGN')}
+              </span>
+            </div>
           </div>
-          <div style={{ height: '6px', borderRadius: '9999px', background: 'var(--express-border)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: '9999px', background: barColor, width: `${Math.min(pct * 100, 100)}%`, transition: 'width 0.5s ease' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-            <span style={{ fontSize: '10px', color: 'var(--express-muted)' }}>
-              {isOver ? `₦${Math.abs(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} over` : `₦${(dailyBudgetNGN - todaySpendNGN).toLocaleString('en-NG')} left`}
-            </span>
-            <span style={{ fontSize: '10px', color: 'var(--express-muted)' }}>
-              Budget: {formatCurrency(dailyBudgetNGN, 'NGN')}
-            </span>
-          </div>
-        </div>
 
-        {/* Inputs */}
-        <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <AmountInput value={amount} onChange={setAmount} onEnter={handleLog} inputRef={amountRef} />
-          <LabelInput value={label} onChange={setLabel} onEnter={handleLog} />
+          {/* Inputs */}
+          <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <AmountInput value={amount} onChange={setAmount} onEnter={handleLog} inputRef={amountRef} />
+            <LabelInput value={label} onChange={setLabel} onEnter={handleLog} />
 
-          <button
-            type="button"
-            onClick={handleLog}
-            disabled={!amount || parseFloat(amount) <= 0 || logged}
-            style={{
-              width: '100%',
-              padding: '14px',
-              borderRadius: '16px',
-              border: 'none',
-              cursor: logged ? 'default' : 'pointer',
-              background: logged ? 'var(--express-green-soft)' : 'var(--express-ink)',
-              color: logged ? '#0f9d58' : 'var(--express-bg)',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              opacity: (!amount || parseFloat(amount) <= 0) ? 0.4 : 1,
-              transition: 'all 0.2s',
-            }}
-          >
-            {logged ? (
-              <><Check style={{ width: '20px', height: '20px' }} /> Logged!</>
-            ) : (
-              <>Log spend {amount ? `₦${parseFloat(amount).toLocaleString('en-NG')}` : ''}</>
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={handleLog}
+              disabled={!amount || parseFloat(amount) <= 0 || logged}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '16px',
+                border: 'none',
+                cursor: logged ? 'default' : 'pointer',
+                background: logged ? 'var(--express-green-soft)' : 'var(--express-ink)',
+                color: logged ? '#0f9d58' : 'var(--express-bg)',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                opacity: (!amount || parseFloat(amount) <= 0) ? 0.4 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {logged ? (
+                <><Check style={{ width: '20px', height: '20px' }} /> Logged!</>
+              ) : (
+                <>Log spend {amount ? `₦${parseFloat(amount).toLocaleString('en-NG')}` : ''}</>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
