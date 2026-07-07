@@ -40,11 +40,13 @@ A few decisions worth explaining:
 
 ## Current status / known limitation
 
-The backend is built, deployed, and verified end-to-end against Nomba's documented API shapes. `/api/health` confirms all credentials load and the app is pointed at the sandbox.
+The backend is built, deployed, and verified end-to-end against Nomba's documented API shapes. `/api/health` confirms all four core credentials load and the app is correctly pointed at the sandbox host.
 
-What's still pending is **sandbox authentication**. The hackathon credentials I was given were issued by email for registration; Nomba's sandbox requires the test `clientId`, `clientSecret`, and `accountId` generated from the dashboard's API Keys page, which only work against `sandbox.nomba.com`. The token call currently returns 403 because the email credentials and the dashboard sandbox credentials are different sets — I've reached out to Nomba support for sandbox access.
+What's still pending is **sandbox authentication**. The hackathon credentials I was given were issued by email for registration; Nomba's sandbox requires the test `clientId`, `clientSecret`, and `accountId` generated from the dashboard's API Keys page, and only those work against `sandbox.nomba.com`. The token call currently returns 403 because the email credentials and the dashboard sandbox credentials are different sets. I don't have a registered Nomba dashboard account — the hackathon email was the only access I was given — so I've submitted my webhook URL through Nomba's form and I'm waiting on their support for sandbox access.
 
-So that the app stays fully demonstrable in the meantime, the payment flows have a **demo fallback**: when a call hits the "service not ready" auth error, it returns a clean simulated success tagged `isDemoFallback`, so the Auto-pay toggle and the recurring-payment UX work end to end. The moment real sandbox credentials are in place, the live path is taken automatically — there's no code change to make, just the environment variables. Nothing in the demo path pretends a real charge happened.
+So the app stays fully demonstrable in the meantime, the payment flows have a **demo fallback**: when a call hits that specific "not authorized yet" error, it returns a clean simulated success tagged `isDemoFallback`, so the Auto-pay toggle and the recurring-payment UX work end to end. The moment real sandbox credentials are in place, the live path is taken automatically — there's no code change, just the environment variables. Nothing in the demo path pretends a real charge happened.
+
+The webhook URL (`https://vepay.vercel.app/api/nomba/webhook`) and sub-account ID have already been submitted to Nomba; `NOMBA_WEBHOOK_SECRET` will be added once they respond, which flips `/api/health`'s `ready` flag to `true`.
 
 ## Stack
 
@@ -99,3 +101,5 @@ src/
 ## Notes
 
 The internal code name was ClearSpend before the rebrand to Vepay; a few identifiers in the source still carry the old name. Functionally it's the same thing — didn't want to risk a rename breaking something this close to the deadline.
+
+Cross-device responsiveness took real iteration, particularly iOS Safari, which handles `position: sticky`, viewport height, and CSS variable transitions differently from Chrome — several rounds of fixes went into getting the sidebar, modals, and sticky headers behaving consistently across Android, Chrome, and Safari.

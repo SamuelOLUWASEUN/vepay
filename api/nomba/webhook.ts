@@ -97,7 +97,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const rawBody = JSON.stringify(req.body ?? {});
-  const signature = req.headers['x-nomba-signature'];
+  // Nomba sends the signature in the `nomba-signature` header (no "x-" prefix).
+  const signature = req.headers['nomba-signature'];
   const webhookSecret = process.env.NOMBA_WEBHOOK_SECRET;
 
   if (webhookSecret && typeof signature === 'string') {
