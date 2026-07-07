@@ -24,7 +24,7 @@ Around the mandate there's the supporting cast you need for a real payment flow:
 - **`/api/nomba/transfer`** — sub-account bank transfer, used for Ajo payouts and syndicate splits. Takes a 1% platform fee.
 - **`/api/nomba/bank-lookup`** — resolves account number + bank code to the holder's name, so a payout can be confirmed before it's sent.
 - **`/api/nomba/reconcile`** — compares the app's local ledger against Nomba's transaction record and reports drift.
-- **`/api/nomba/webhook`** — receives Nomba's signed payment events, verifies the HMAC signature, and de-duplicates by request id.
+- **`/api/nomba/webhook`** — receives Nomba's signed payment events (verified via the `nomba-signature` header, HMAC-SHA256), and de-duplicates by request id.
 - **`/api/nomba/token`** — client-credentials auth, cached per function instance.
 - **`/api/health`** — reports which credentials and environment are configured. Useful for checking a deploy without guessing.
 
@@ -40,13 +40,15 @@ A few decisions worth explaining:
 
 ## Current status / known limitation
 
-The backend is built, deployed, and verified end-to-end against Nomba's documented API shapes. `/api/health` confirms all four core credentials load and the app is correctly pointed at the sandbox host.
+The backend is fully built, deployed, and configured. `/api/health` confirms all five environment variables are set, the app is correctly pointed at the sandbox host, and reports `ready: true`.
 
-What's still pending is **sandbox authentication**. The hackathon credentials I was given were issued by email for registration; Nomba's sandbox requires the test `clientId`, `clientSecret`, and `accountId` generated from the dashboard's API Keys page, and only those work against `sandbox.nomba.com`. The token call currently returns 403 because the email credentials and the dashboard sandbox credentials are different sets. I don't have a registered Nomba dashboard account — the hackathon email was the only access I was given — so I've submitted my webhook URL through Nomba's form and I'm waiting on their support for sandbox access.
+The one open item is **sandbox authentication**. The hackathon credentials I was given were issued by email for registration; Nomba's sandbox requires the test `clientId`, `clientSecret`, and `accountId` generated from the dashboard's API Keys page, and only those work against `sandbox.nomba.com`. The token call currently returns 403 because the email credentials and the dashboard sandbox credentials are different sets. I don't have a registered Nomba dashboard account — the hackathon email was the only access I was given.
+
+I isolated this precisely by temporarily testing with my **live** credentials against `api.nomba.com`: token issuance succeeded (`ok:true`, valid token returned), confirming the auth flow, request format, and account are all correct. The 403 is specific to the sandbox credential set, not a bug in this integration. I reverted immediately afterward — no live payment endpoints were exercised, only token issuance, which doesn't touch money. I've reported this finding directly to Nomba's team, and other participants have reported the same sandbox issue independently.
 
 So the app stays fully demonstrable in the meantime, the payment flows have a **demo fallback**: when a call hits that specific "not authorized yet" error, it returns a clean simulated success tagged `isDemoFallback`, so the Auto-pay toggle and the recurring-payment UX work end to end. The moment real sandbox credentials are in place, the live path is taken automatically — there's no code change, just the environment variables. Nothing in the demo path pretends a real charge happened.
 
-The webhook URL (`https://vepay.vercel.app/api/nomba/webhook`) and sub-account ID have already been submitted to Nomba; `NOMBA_WEBHOOK_SECRET` will be added once they respond, which flips `/api/health`'s `ready` flag to `true`.
+The webhook is fully live: signature verification is active (`NOMBA_WEBHOOK_SECRET` configured, `nomba-signature` header verified with HMAC-SHA256), and `GET /api/nomba/webhook` confirms the endpoint responds correctly.
 
 ## Stack
 
@@ -71,7 +73,7 @@ NOMBA_PRIVATE_KEY       your sandbox client secret
 NOMBA_ACCOUNT_ID        your parent account id (sent in the accountId header)
 NOMBA_SUB_ACCOUNT_ID    your sub-account id (calls are scoped to this)
 NOMBA_BASE_URL          https://sandbox.nomba.com   (omit to default to sandbox)
-NOMBA_WEBHOOK_SECRET    provided by Nomba after you submit your webhook URL
+NOMBA_WEBHOOK_SECRET    shared secret for the hackathon event (see Nomba's webhook docs)
 ```
 
 Then `https://<your-deploy>/api/health` will show everything as configured.
