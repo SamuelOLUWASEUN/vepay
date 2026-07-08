@@ -4,6 +4,14 @@ A subscription and recurring-payment tracker built for the Nomba × DevCareer Ha
 
 Live: https://vepay.vercel.app
 
+## For reviewers — quick access
+
+Vepay uses a prototype sign-in: enter **any email address and any password of 6+ characters** — there's no real account system to navigate, no signup flow, no waiting on a verification email. That's it, you're in. Once signed in, use the sidebar (desktop) or the hamburger menu (mobile) to switch between **Express mode** and **Pro mode** — both are fully functional from the same account.
+
+You don't need any Nomba credentials, API keys, or test accounts to explore Vepay — those are mine, they live server-side in Vercel's environment variables, and the app works without you supplying anything. See "Current status / known limitation" below for exactly what that means for the live payment flow specifically.
+
+---
+
 The idea behind Vepay is that "subscriptions" mean two very different things depending on who you are. A market trader in Lagos has recurring money going out too — shop rent, daily thrift contributions, NEPA tokens, market association levies — but no app treats those like the manageable, trackable commitments they are. A developer paying for fifteen SaaS tools has the opposite problem: too many subscriptions, easy to lose track of, easy to forget to cancel. Same underlying need (money leaves on a schedule, help me stay on top of it), two audiences who'd never use the same interface.
 
 So Vepay has two modes:
@@ -37,6 +45,20 @@ A few decisions worth explaining:
 **Money is always in kobo.** Amounts are converted to integer kobo at exactly one place (`toKobo` in `_shared.ts`) and never sent to Nomba as naira floats. Reading responses back goes through `fromKobo`. Keeping that in one spot is deliberate — currency-unit bugs are the kind that don't show up until someone's charged 100× too little.
 
 **Sandbox vs production is a config switch, not a code change.** The base URL and the checkout path prefix both derive from `NOMBA_BASE_URL`. Sandbox uses `https://sandbox.nomba.com` and serves checkout under `/sandbox/checkout/`; production uses `https://api.nomba.com` and `/v1/checkout/`. Switching environments is one environment variable.
+
+## Security notes — what's actually protected, and what isn't
+
+I'd rather be specific here than make a blanket claim like "this is secure," because that's not a real answer.
+
+**What's genuinely handled correctly:** the Nomba credentials never reach the browser. They're read inside the Vercel functions from environment variables and never appear in any file the frontend ships, so there's nothing to find in dev tools or page source. This is the failure mode that actually matters for a payments integration, and it's the one I made sure not to get wrong.
+
+**What isn't there, and why it's fine for now:** the API routes under `/api/nomba/*` don't check who's calling them — there's no session or API key enforcing that a request came from the actual Vepay frontend rather than someone hitting the endpoint directly. For a hackathon build with a prototype sign-in (any email, any 6-character password, nothing real), that's an acceptable gap, not an oversight I missed. A real launch would need auth on these routes before they touch a single real transaction.
+
+User data — expenses, mandate status, everything the app tracks — lives in the browser's localStorage, not in a database I control. That means there's no server-side store to breach, but it also means the data has no protection beyond whatever protects the user's own device.
+
+The webhook is the one piece that's actually locked down properly: incoming events are checked against Nomba's HMAC-SHA256 signature before anything is trusted, using a constant-time comparison so the check itself can't be timed and guessed. Nothing gets processed on a forged event.
+
+Nothing in this project sends user data anywhere besides Nomba's API and Vepay's own backend — no analytics, no third-party tracking, no data pipe to sell. If it doesn't touch Nomba, it doesn't leave the browser.
 
 ## Current status / known limitation
 
